@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Ranmac Live Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #101827; color: #f8fafc;
+      font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    main { max-width: 540px; margin: auto; padding: 26px 15px 50px; }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    p { color: #bac4d3; line-height: 1.5; font-size: 14px; }
+    #reader { background: #0b1220; border-radius: 14px; overflow: hidden;
+      margin: 22px 0 12px; width: 100%; }
+    #reader video { border-radius: 12px; }
+    .notice { background: #1e2a3d; padding: 15px; border-radius: 12px;
+      font-size: 14px; margin: 14px 0; overflow-wrap: anywhere; }
+    button { width: 100%; background: #eef2f7; color: #172033; border: 0;
+      border-radius: 10px; font-weight: 700; font-size: 15px; padding: 14px;
+      margin: 8px 0; cursor: pointer; }
+    .secondary { background: #334155; color: #fff; }
+    [hidden] { display: none !important; }
+    #scannedCode { font-family: ui-monospace, Consolas, monospace; font-size: 17px;
+      overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Ranmac Live Scanner</h1>
+  <p>Hold a barcode or QR code in front of the rear camera. The code is read automatically—no photograph needed.</p>
+  <div id="reader"></div>
+  <div class="notice" id="status" role="status">Starting camera…</div>
+  <button id="startBtn" type="button" hidden>Start camera</button>
+  <button id="retryBtn" class="secondary" type="button" hidden>Scan another</button>
+  <div id="result" class="notice" hidden>
+    <strong>Scanned code</strong>
+    <div id="scannedCode"></div>
+    <button id="copyBtn" type="button">Copy code</button>
+  </div>
+  <p>Allow camera access when your browser asks. This scanner runs on an HTTPS page; it does not modify inventory quantities.</p>
+</main>
+<script>
+  const statusEl = document.getElementById('status');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const resultEl = document.getElementById('result');
+  const scannedCodeEl = document.getElementById('scannedCode');
+  let scanner = null;
+  let starting = false;
+  let accepted = false;
+
+  const returnUrlParam = new URLSearchParams(window.location.search).get('return');
+  let returnUrl = null;
+  if (returnUrlParam) {
+    try {
+      const parsed = new URL(returnUrlParam);
+      if (parsed.protocol === 'https:' &&
+          parsed.hostname === 'script.google.com' &&
+          /^\/macros\/s\/[^/]+\/(exec|dev)$/.test(parsed.pathname)) {
+        returnUrl = parsed;
+      }
+    } catch (e) { /* Invalid return URL: stay on scanner */ }
+  }
+
+  function state(message) { statusEl.textContent = message; }
+
+  async function stopCamera() {
+    if (!scanner) return;
+    try { await scanner.stop(); } catch (e) { /* may not be running */ }
+    try { scanner.clear(); } catch (e) { /* optional cleanup */ }
+    scanner = null;
+  }
+
+  async function onDetected(code) {
+    if (accepted) return;
+    accepted = true;
+    state('Code detected!');
+    scannedCodeEl.textContent = code;
+    resultEl.hidden = false;
+    retryBtn.hidden = false;
+    startBtn.hidden = true;
+    if (navigator.vibrate) navigator.vibrate(80);
+    await stopCamera();
+    if (returnUrl) {
+      returnUrl.searchParams.set('scan', code);
+      state('Opening matching product in Ranmac Inventory…');
+      window.location.assign(returnUrl.toString());
+    } else {
+      state('Code read. Open from Ranmac Inventory to search automatically.');
+    }
+  }
+
+  async function startCamera() {
+    if (starting || scanner) return;
+    starting = true;
+    accepted = false;
+    resultEl.hidden = true;
+    retryBtn.hidden = true;
+    startBtn.hidden = true;
+    state('Requesting camera access…');
+    try {
+      if (typeof Html5Qrcode === 'undefined') {
+        throw new Error('Scanner library did not load. Check the internet connection.');
+      }
+      scanner = new Html5Qrcode('reader', { verbose: false });
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: (w, h) => ({
+            width: Math.max(100, Math.min(320, Math.floor(w * 0.9))),
+            height: Math.max(90, Math.min(190, Math.floor(h * 0.5)))
+          }) },
+        onDetected,
+        () => {}
+      );
+      if (!accepted) state('Scanning… Hold the code steady inside the frame.');
+    } catch (error) {
+      await stopCamera();
+      state('Camera unavailable: ' + (error && error.message ? error.message : String(error)) +
+        '. Allow camera access, then tap Start camera.');
+      startBtn.hidden = false;
+    } finally {
+      starting = false;
+    }
+  }
+
+  startBtn.addEventListener('click', startCamera);
+  retryBtn.addEventListener('click', startCamera);
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(scannedCodeEl.textContent);
+      state('Copied the scanned code.');
+    } catch (e) {
+      state('Select and copy the code shown above.');
+    }
+  });
+  window.addEventListener('pagehide', () => { if (scanner) stopCamera(); });
+  startCamera();
+</script>
+</body>
+</html>
