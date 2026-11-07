@@ -3,183 +3,168 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Ranmac Live Scanner 2.7</title>
+  <title>Ranmac Live Scanner 2.8</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
+
+    :root { color-scheme: dark; }
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #0b1220;
-      color: #f8fafc;
-      font-family: system-ui, -apple-system, Arial, sans-serif;
-    }
-    main { max-width: 560px; margin: 0 auto; padding: 18px 14px 42px; }
-    h1 { margin: 0 0 6px; font-size: 25px; line-height: 1.2; }
-    p { margin: 6px 0 13px; color: #cbd5e1; font-size: 14px; line-height: 1.5; }
-    .panel {
-      margin: 12px 0;
-      padding: 14px;
-      border: 1px solid #334155;
-      background: #172337;
-      border-radius: 14px;
-    }
-    .small { font-size: 12px; color: #cbd5e1; line-height: 1.5; }
-    label { display: block; margin: 9px 0 6px; font-size: 13px; font-weight: 600; }
-    select, input[type="text"], input[type="file"] {
-      width: 100%; min-height: 43px; padding: 10px;
-      border: 1px solid #64748b; border-radius: 9px;
-      color: #fff; background: #0f172a; font-size: 15px;
-    }
-    input[type="range"] { width: 100%; accent-color: #22c55e; }
-    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
-    button {
-      min-height: 44px; padding: 10px 12px; border: 0; border-radius: 9px;
-      color: #0f172a; background: #e2e8f0; font-weight: 700; font-size: 14px;
-      cursor: pointer;
-    }
-    button.secondary { color: #f8fafc; background: #334155; }
-    button.primary { color: #052e16; background: #4ade80; }
-    button:disabled { opacity: 0.55; cursor: not-allowed; }
-    .full { width: 100%; margin-top: 10px; }
-    .switch { display: flex; align-items: center; gap: 9px; margin-top: 12px; }
-    .switch input { width: 18px; height: 18px; accent-color: #4ade80; }
-    .switch label { margin: 0; font-weight: 400; font-size: 13px; }
-    #readerWrap {
-      overflow: hidden;
-      border-radius: 12px;
-      background: #020617;
-      border: 1px solid #475569;
-    }
-    /* Keep the preview compact rather than stretching down the phone. */
-    #reader {
-      width: 100% !important;
-      height: clamp(225px, 58vw, 280px) !important;
-      max-height: 280px;
-      overflow: hidden !important;
-      background: #020617;
-      position: relative;
-    }
-    #reader video {
-      display: block !important;
-      width: 100% !important;
-      height: clamp(225px, 58vw, 280px) !important;
-      max-height: 280px !important;
-      /* Default: enlarge/crop portrait camera feed to fill the wide window. */
-      object-fit: cover !important;
-      object-position: center center !important;
-      background: #020617;
-    }
-    #readerWrap.show-full #reader video {
-      /* Optional: view the entire portrait video with black side bars. */
-      object-fit: contain !important;
-    }
-    /* The captured frame remains visible after the camera stream closes. */
-    #readerWrap { position: relative; }
-    #frozenFrame {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 20;
-      pointer-events: none;
-    }
-    #frozenLabel {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 21;
-      pointer-events: none;
-      padding: 6px 9px;
-      border-radius: 7px;
-      color: #dcfce7;
-      background: rgba(5, 46, 22, 0.84);
-      font-size: 12px;
-      font-weight: 700;
-    }
-    #reader canvas { max-height: 280px; }
-    #status { white-space: pre-line; overflow-wrap: anywhere; line-height: 1.5; font-size: 13px; }
-    .result-code {
-      padding: 12px; margin: 9px 0; border-radius: 9px;
-      background: #061525; border: 1px solid #475569;
-      font: 700 18px ui-monospace, Consolas, monospace;
-      overflow-wrap: anywhere;
-    }
-    .success { color: #86efac; font-weight: 700; }
+    html, body { margin: 0; height: 100%; overflow: hidden; }
+    body { background: #091323; color: #f8fafc; font-family: system-ui, -apple-system, Arial, sans-serif; }
+    button, select, input { font: inherit; }
+    button { border: 0; cursor: pointer; touch-action: manipulation; }
     [hidden] { display: none !important; }
+    .app-shell {
+      width: 100%; max-width: 560px; margin: 0 auto;
+      height: 100vh; height: 100dvh;
+      padding: calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px);
+      display: flex; flex-direction: column; gap: 9px; overflow: hidden;
+    }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: 0 0 auto; }
+    .brand { min-width: 0; }
+    .brand strong { display: block; font-size: 19px; line-height: 1.1; letter-spacing: -.35px; }
+    .brand span { display: block; margin-top: 3px; color: #94a3b8; font-size: 11px; letter-spacing: .3px; }
+    .top-button { border: 1px solid #334155; background: #1a2a40; color: #f1f5f9; border-radius: 10px; padding: 9px 12px; min-height: 40px; font-size: 13px; font-weight: 700; }
+    .modebar { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; flex: 0 0 auto; padding: 4px; border-radius: 11px; background: #172337; border: 1px solid #293b54; }
+    .modebar button { padding: 8px 10px; min-height: 36px; border-radius: 8px; background: transparent; color: #b9c8dd; font-size: 13px; font-weight: 650; }
+    .modebar button[aria-pressed="true"] { color: #072615; background: #86efac; }
+    #readerWrap { position: relative; flex: 1 1 auto; min-height: 145px; overflow: hidden; border-radius: 15px; background: #020617; border: 1px solid #334155; isolation: isolate; }
+    #reader { position: relative; width: 100% !important; height: 100% !important; overflow: hidden !important; background: #020617; }
+    #reader video { display: block !important; width: 100% !important; height: 100% !important; object-fit: cover !important; object-position: center !important; background: #020617; }
+    #readerWrap.show-full #reader video { object-fit: contain !important; }
+    #reader canvas { max-width: 100%; }
+    #frozenFrame { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
+    #frozenLabel { position: absolute; top: 10px; right: 10px; z-index: 21; pointer-events: none; padding: 5px 8px; border-radius: 8px; background: #052e16da; color: #bbf7d0; font-size: 11px; font-weight: 750; }
+    .preview-hint { position: absolute; z-index: 10; bottom: 9px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px); padding: 6px 10px; border-radius: 99px; background: #061425b0; color: #e2e8f0; font-size: 11px; text-align: center; pointer-events: none; }
+    .feedback { flex: 0 0 auto; min-height: 39px; display: flex; align-items: center; padding: 8px 11px; color: #c6d5e8; background: #122238; border: 1px solid #253a54; border-radius: 10px; font-size: 12px; line-height: 1.35; white-space: pre-line; overflow-wrap: anywhere; max-height: 65px; overflow: auto; }
+    .actionbar { flex: 0 0 auto; }
+    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .buttons button { min-height: 48px; border-radius: 11px; padding: 10px 12px; background: #dbeafe; color: #10233a; font-size: 14px; font-weight: 750; }
+    .buttons button.secondary { background: #263951; color: #e2e8f0; border: 1px solid #435770; }
+    .buttons button.primary { background: #4ade80; color: #052e16; }
+    button:disabled { opacity: .5; }
+    .result-overlay { position: absolute; z-index: 30; left: 10px; right: 10px; bottom: 10px; padding: 10px 12px; border-radius: 12px; background: #081c30eb; border: 1px solid #4ade80a6; box-shadow: 0 10px 35px #0008; }
+    .result-caption { font-size: 11px; color: #86efac; font-weight: 750; }
+    .result-line { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .result-code { min-width: 0; flex: 1; font: 750 17px/1.2 ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
+    .copy-small { padding: 6px 9px; color: #dbeafe; background: #284560; font-size: 12px; font-weight: 650; border-radius: 7px; }
+    .drawer-backdrop { position: fixed; z-index: 50; inset: 0; background: #000a; }
+    .drawer { position: fixed; z-index: 51; left: 50%; bottom: 0; transform: translateX(-50%); width: min(100%, 560px); max-height: min(84dvh, 680px); display: flex; flex-direction: column; border-radius: 20px 20px 0 0; border: 1px solid #39516e; background: #15243a; box-shadow: 0 -10px 50px #000a; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+    .drawer-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid #38516b; flex: 0 0 auto; }
+    .drawer-head strong { font-size: 17px; }
+    .drawer-body { overflow-y: auto; overscroll-behavior: contain; padding: 8px 2px 2px; }
+    .drawer label { display: block; color: #cbd5e1; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+    .drawer select, .drawer input[type="text"], .drawer input[type="file"] { width: 100%; min-height: 43px; padding: 10px; border: 1px solid #64748b; border-radius: 9px; color: #f8fafc; background: #0f172a; font-size: 15px; }
+    .drawer input[type="range"] { width: 100%; accent-color: #4ade80; }
+    .drawer .setting-button { min-height: 41px; margin-top: 9px; width: 100%; padding: 8px; background: #334b66; color: #f8fafc; border-radius: 9px; font-weight: 650; }
+    .switch { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 13px; color: #dbeafe; }
+    .switch input { width: 19px; height: 19px; accent-color: #4ade80; }
+    .drawer .switch label { margin: 0; font-weight: 400; }
+    .subtle { color: #93a9c4; font-size: 12px; line-height: 1.45; }
+    .settings-section { border-bottom: 1px solid #334a63; padding-bottom: 14px; }
+    .settings-section:last-child { border-bottom: 0; }
+    .settings-section h2 { margin: 14px 0 0; font-size: 15px; }
+    @media (max-height: 650px) {
+      .app-shell { gap: 6px; padding-top: calc(env(safe-area-inset-top) + 6px); padding-bottom: calc(env(safe-area-inset-bottom) + 6px); }
+      .brand strong { font-size: 17px; }
+      .modebar button { min-height: 32px; }
+      .buttons button { min-height: 42px; }
+      .feedback { min-height: 32px; padding: 5px 9px; }
+    }
+    @media (min-width: 700px) { .app-shell { border-left: 1px solid #24374f; border-right: 1px solid #24374f; } }
   </style>
 </head>
 <body>
-<main>
-  <h1>Ranmac Live Scanner</h1>
-  <p>Version 2.7 · Freeze-frame confirmation · Fast, verified scanning</p>
 
-  <div class="panel">
-    <label for="cameraSelect">Camera lens</label>
-    <select id="cameraSelect"><option value="auto">Automatic rear camera</option></select>
-    <div class="buttons">
-      <button type="button" id="startBtn">Use camera / Restart</button>
-      <button type="button" id="refreshBtn" class="secondary">Refresh lenses</button>
+<main class="app-shell">
+  <header class="topbar">
+    <div class="brand">
+      <strong>Ranmac Scanner</strong>
+      <span>VERSION 2.8 · ONE-SCREEN VIEW</span>
     </div>
-    <p class="small">If the preview looks ultrawide, choose a Back / Rear / Main camera. Some phones expose only one combined rear camera.</p>
+    <button type="button" class="top-button" id="settingsBtn" aria-haspopup="dialog" aria-controls="settingsSheet">⚙ Settings</button>
+  </header>
 
-    <label for="viewMode">Camera preview</label>
-    <select id="viewMode">
-      <option value="fill">Fill window (zoom-to-fit, cropped edges)</option>
-      <option value="full">Show full camera image (black side bars)</option>
-    </select>
-    <p class="small">Fill window enlarges the preview to match the wide frame. It crops the edges; it does not change the camera's optical zoom. Keep the entire barcode visible.</p>
+  <nav class="modebar" aria-label="Scanning mode">
+    <button type="button" id="barcodeModeBtn" aria-pressed="true">▤ Barcode</button>
+    <button type="button" id="qrModeBtn" aria-pressed="false">▦ QR code</button>
+  </nav>
 
-    <label for="scanMode">Scanning mode</label>
-    <select id="scanMode">
-      <option value="barcode">Barcode — wide, short target</option>
-      <option value="qr">QR code — square target</option>
-    </select>
-    <div class="switch">
-      <input type="checkbox" id="autoOpen">
-      <label for="autoOpen">Automatically return to inventory after a verified read (optional)</label>
-    </div>
-  </div>
-
-  <div id="readerWrap">
+  <section id="readerWrap" aria-label="Live scanner preview">
     <div id="reader"></div>
     <canvas id="frozenFrame" aria-label="Frozen camera preview" hidden></canvas>
     <span id="frozenLabel" hidden>Frame captured</span>
-  </div>
-  <div class="panel" id="status" role="status">Initializing camera…</div>
-
-  <div class="panel" id="zoomPanel" hidden>
-    <label for="zoom">Camera zoom: <span id="zoomValue">1.0×</span></label>
-    <input id="zoom" type="range" min="1" max="2" step="0.1" value="1">
-    <div class="small">Zoom is available only when the browser exposes it.</div>
-  </div>
-
-  <div class="panel" id="resultPanel" hidden>
-    <div class="success">Code detected and verified</div>
-    <div class="result-code" id="scannedCode"></div>
-    <p class="small">The camera preview is frozen after a verified scan. Check the number before opening the product; repeated reads cannot guarantee the intended barcode was captured.</p>
-    <div class="buttons">
-      <button type="button" id="useCodeBtn" class="primary">Use this code</button>
-      <button type="button" id="againBtn" class="secondary">Scan again</button>
+    <span id="previewHint" class="preview-hint">Keep the full barcode within the guide</span>
+    <div id="resultPanel" class="result-overlay" hidden>
+      <div class="result-caption">✓ VERIFIED · Review before opening</div>
+      <div class="result-line">
+        <span id="scannedCode" class="result-code"></span>
+        <button type="button" id="copyBtn" class="copy-small" aria-label="Copy scanned code">Copy</button>
+      </div>
     </div>
-    <button type="button" id="copyBtn" class="secondary full">Copy code</button>
-  </div>
+  </section>
 
-  <div class="panel">
-    <strong>Backup methods</strong>
-    <p class="small">For difficult packages, use a clearer photo or type the part number.</p>
-    <label for="photo">Read barcode from a photo</label>
-    <input id="photo" type="file" accept="image/*" capture="environment">
-    <label for="manual">Manually enter barcode or part number</label>
-    <input id="manual" type="text" placeholder="91009-KVY-961" autocomplete="off">
-    <button type="button" id="manualBtn" class="secondary full">Review typed code</button>
+  <div id="status" class="feedback" role="status" aria-live="polite">Initializing camera…</div>
+  <div class="actionbar">
+    <div class="buttons" id="liveActions">
+      <button type="button" id="startBtn">↻ Restart camera</button>
+      <button type="button" id="quickOptionsBtn" class="secondary">☷ Camera options</button>
+    </div>
+    <div class="buttons" id="confirmActions" hidden>
+      <button type="button" id="useCodeBtn" class="primary">✓ Use this code</button>
+      <button type="button" id="againBtn" class="secondary">↻ Scan again</button>
+    </div>
   </div>
-  <p class="small">This scanner is read-only. Open it using the Ranmac Inventory web app to return your result to Google Sheets search. Printed-text OCR will be a separate future feature.</p>
 </main>
+
+<div id="settingsBackdrop" class="drawer-backdrop" hidden></div>
+<aside id="settingsSheet" class="drawer" role="dialog" aria-modal="true" aria-label="Scanner settings" hidden>
+  <div class="drawer-head">
+    <strong>Camera & scanner settings</strong>
+    <button type="button" class="top-button" id="closeSettingsBtn">Done ✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="settings-section">
+      <label for="cameraSelect">Camera lens</label>
+      <select id="cameraSelect"><option value="auto">Automatic rear camera</option></select>
+      <button type="button" class="setting-button" id="refreshBtn">Refresh camera list</button>
+      <div class="subtle">If your preview appears ultrawide, choose a Back, Rear, or Main camera if available.</div>
+      <label for="viewMode">Camera preview</label>
+      <select id="viewMode">
+        <option value="fill">Fill window (cropped edges)</option>
+        <option value="full">Show full camera image</option>
+      </select>
+      <label for="scanMode">Scanning mode</label>
+      <select id="scanMode">
+        <option value="barcode">Barcode — wide target</option>
+        <option value="qr">QR code — square target</option>
+      </select>
+      <div id="zoomPanel" hidden>
+        <label for="zoom">Camera zoom: <span id="zoomValue">1.0×</span></label>
+        <input id="zoom" type="range" min="1" max="2" step="0.1" value="1">
+      </div>
+      <div class="switch">
+        <input type="checkbox" id="autoOpen">
+        <label for="autoOpen">Automatically return to inventory after a verified scan</label>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h2>Backup methods</h2>
+      <p class="subtle">For difficult barcodes, use a photo or manually type the code.</p>
+      <label for="photo">Read barcode from photo</label>
+      <input id="photo" type="file" accept="image/*" capture="environment">
+      <label for="manual">Enter barcode or part number</label>
+      <input id="manual" type="text" placeholder="91009-KVY-961" autocomplete="off">
+      <button type="button" class="setting-button" id="manualBtn">Review typed code</button>
+    </div>
+    <p class="subtle">Two matching readings are required. This scanner never changes stock quantities.</p>
+  </div>
+</aside>
 <script>
 'use strict';
 
 // ========================================
-// RANMAC LIVE SCANNER — VERSION 2.7
+// RANMAC LIVE SCANNER — VERSION 2.8
 // ========================================
 const REQUIRED_READS = 2;
 const MIN_READ_SPACING_MS = 300;
@@ -214,6 +199,30 @@ try {
 } catch (_) {}
 
 function message(text) { $('status').textContent = text; }
+function openSettings() {
+  $('settingsBackdrop').hidden = false;
+  $('settingsSheet').hidden = false;
+  $('closeSettingsBtn').focus();
+}
+function closeSettings() {
+  $('settingsBackdrop').hidden = true;
+  $('settingsSheet').hidden = true;
+  $('settingsBtn').focus();
+}
+function updateModeButtons() {
+  const isBarcode = $('scanMode').value === 'barcode';
+  $('barcodeModeBtn').setAttribute('aria-pressed', String(isBarcode));
+  $('qrModeBtn').setAttribute('aria-pressed', String(!isBarcode));
+  $('previewHint').textContent = isBarcode
+    ? 'Keep the full barcode within the guide'
+    : 'Center the full QR code in the square';
+}
+function updateActionButtons(isConfirmed) {
+  $('liveActions').hidden = isConfirmed;
+  $('confirmActions').hidden = !isConfirmed;
+  $('previewHint').hidden = isConfirmed;
+}
+
 function errorMessage(error) { return (error && error.message) || String(error); }
 function setBusy(value) {
   busy = value;
@@ -394,6 +403,7 @@ async function onDecoded(value, decodedResult, expectedSession) {
     await stopScanner();
     $('scannedCode').textContent = code;
     $('resultPanel').hidden = false;
+    updateActionButtons(true);
     message(frameSaved
       ? 'Verified: two matching reads. Camera image frozen for review; camera is off.'
       : 'Verified: two matching reads. Review the code below.');
@@ -428,6 +438,7 @@ async function startCamera(requested = 'auto') {
   resetCandidate();
   clearFrozenFrame();
   $('resultPanel').hidden = true;
+  updateActionButtons(false);
   const originalCamera = lastWorkingCamera;
   message('Starting camera…');
   try {
@@ -504,9 +515,32 @@ function showManualResult(code) {
   verified = true;
   $('scannedCode').textContent = confirmedCode;
   $('resultPanel').hidden = false;
+  updateActionButtons(true);
+  closeSettings();
   message('Code ready. Review it below before using it.');
 }
 
+$('settingsBtn').addEventListener('click', openSettings);
+$('quickOptionsBtn').addEventListener('click', openSettings);
+$('closeSettingsBtn').addEventListener('click', closeSettings);
+$('settingsBackdrop').addEventListener('click', closeSettings);
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !$('settingsSheet').hidden) closeSettings();
+});
+$('barcodeModeBtn').addEventListener('click', () => {
+  if ($('scanMode').value === 'barcode') return;
+  $('scanMode').value = 'barcode';
+  $('scanMode').dispatchEvent(new Event('change'));
+});
+$('qrModeBtn').addEventListener('click', () => {
+  if ($('scanMode').value === 'qr') return;
+  $('scanMode').value = 'qr';
+  $('scanMode').dispatchEvent(new Event('change'));
+});
+$('cameraSelect').addEventListener('change', () => {
+  closeSettings();
+  startCamera($('cameraSelect').value);
+});
 $('startBtn').addEventListener('click', () => startCamera($('cameraSelect').value));
 $('refreshBtn').addEventListener('click', async () => {
   if (busy) return;
@@ -519,7 +553,11 @@ $('refreshBtn').addEventListener('click', async () => {
     message('Cannot list cameras: ' + errorMessage(error));
   } finally { setBusy(false); }
 });
-$('scanMode').addEventListener('change', () => startCamera($('cameraSelect').value));
+$('scanMode').addEventListener('change', () => {
+  updateModeButtons();
+  closeSettings();
+  startCamera($('cameraSelect').value);
+});
 $('viewMode').addEventListener('change', () => {
   // A frozen image retains the appearance captured at the moment of scanning.
   // Use Scan again to create a preview in the newly selected mode.
@@ -586,6 +624,8 @@ window.addEventListener('pagehide', () => { stopScanner(); });
   $('autoOpen').checked = storedValue('ranmacAutoOpen') === '1';
   $('viewMode').value = storedValue('ranmacViewMode') === 'full' ? 'full' : 'fill';
   $('readerWrap').classList.toggle('show-full', $('viewMode').value === 'full');
+  updateModeButtons();
+  updateActionButtons(false);
   try {
     const selected = await refreshCameras();
     await startCamera(selected);
