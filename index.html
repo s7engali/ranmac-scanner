@@ -1,142 +1,550 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Ranmac Live Scanner</title>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; background: #101827; color: #f8fafc;
-      font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
-    main { max-width: 540px; margin: auto; padding: 26px 15px 50px; }
-    h1 { font-size: 24px; margin: 0 0 8px; }
-    p { color: #bac4d3; line-height: 1.5; font-size: 14px; }
-    #reader { background: #0b1220; border-radius: 14px; overflow: hidden;
-      margin: 22px 0 12px; width: 100%; }
-    #reader video { border-radius: 12px; }
-    .notice { background: #1e2a3d; padding: 15px; border-radius: 12px;
-      font-size: 14px; margin: 14px 0; overflow-wrap: anywhere; }
-    button { width: 100%; background: #eef2f7; color: #172033; border: 0;
-      border-radius: 10px; font-weight: 700; font-size: 15px; padding: 14px;
-      margin: 8px 0; cursor: pointer; }
-    .secondary { background: #334155; color: #fff; }
-    [hidden] { display: none !important; }
-    #scannedCode { font-family: ui-monospace, Consolas, monospace; font-size: 17px;
-      overflow-wrap: anywhere; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ranmac Live Scanner 2.1</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #111827;
+  color: #f9fafb;
+  font-family: system-ui, Arial, sans-serif;
+}
+main {
+  max-width: 550px;
+  padding: 24px 16px 45px;
+  margin: auto;
+}
+h1 { font-size: 25px; margin: 0 0 8px; }
+p {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.6;
+}
+#reader {
+  width: 100%;
+  background: #030712;
+  border: 1px solid #475569;
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 16px 0;
+}
+#reader video { max-width: 100%; }
+.panel {
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 14px;
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.status {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.muted { color: #cbd5e1; }
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+button {
+  width: 100%;
+  padding: 13px 12px;
+  border-radius: 10px;
+  border: 0;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+button.secondary {
+  background: #334155;
+  color: #fff;
+}
+button:disabled { opacity: .5; }
+input[type=file], input[type=text] {
+  width: 100%;
+  border: 1px solid #64748b;
+  border-radius: 10px;
+  background: #111827;
+  padding: 12px;
+  color: #fff;
+  font-size: 16px;
+}
+input[type=file] { font-size: 14px; }
+label {
+  display: block;
+  font-size: 13px;
+  color: #cbd5e1;
+  margin: 10px 0 7px;
+}
+.code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 18px;
+}
+[hidden] { display: none !important; }
+</style>
 </head>
 <body>
 <main>
   <h1>Ranmac Live Scanner</h1>
-  <p>Hold a barcode or QR code in front of the rear camera. The code is read automatically—no photograph needed.</p>
+  <p>
+    Version 2.1 · Point the rear camera at a
+    barcode or QR code. The entire camera
+    frame is checked automatically.
+  </p>
+
   <div id="reader"></div>
-  <div class="notice" id="status" role="status">Starting camera…</div>
-  <button id="startBtn" type="button" hidden>Start camera</button>
-  <button id="retryBtn" class="secondary" type="button" hidden>Scan another</button>
-  <div id="result" class="notice" hidden>
-    <strong>Scanned code</strong>
-    <div id="scannedCode"></div>
-    <button id="copyBtn" type="button">Copy code</button>
+
+  <div class="panel status"
+       id="status"
+       role="status">
+    Preparing scanner…
   </div>
-  <p>Allow camera access when your browser asks. This scanner runs on an HTTPS page; it does not modify inventory quantities.</p>
+
+  <div class="buttons">
+    <button id="startBtn" type="button">
+      Start / Restart
+    </button>
+    <button id="switchBtn"
+            class="secondary"
+            type="button">
+      Switch camera
+    </button>
+  </div>
+
+  <div class="panel" id="result" hidden>
+    <strong>Code detected</strong>
+    <div class="code" id="scannedCode"></div>
+    <button type="button"
+            id="copyBtn"
+            class="secondary">
+      Copy scanned code
+    </button>
+  </div>
+
+  <div class="panel">
+    <strong>Can't read the barcode?</strong>
+    <p>
+      Keep the complete symbol visible,
+      avoid glare, and move the phone until
+      the bars are sharp. Start around
+      15–25 cm away, then adjust.
+    </p>
+
+    <label for="photo">
+      Optional: read a photo instead
+    </label>
+    <input id="photo"
+           type="file"
+           accept="image/*"
+           capture="environment">
+
+    <label for="manual">
+      Or type a code to check the connection
+    </label>
+    <input id="manual"
+           type="text"
+           placeholder="e.g. 91009-KVY-961"
+           autocomplete="off">
+
+    <button type="button"
+            id="manualBtn"
+            class="secondary"
+            style="margin-top:10px">
+      Search this code
+    </button>
+  </div>
+
+  <p class="muted">
+    Camera permission is required.
+    This scanner reads barcode and QR
+    patterns, not plain printed numbers.
+    It never changes stock quantities.
+  </p>
 </main>
+
 <script>
-  const statusEl = document.getElementById('status');
-  const startBtn = document.getElementById('startBtn');
-  const retryBtn = document.getElementById('retryBtn');
-  const resultEl = document.getElementById('result');
-  const scannedCodeEl = document.getElementById('scannedCode');
-  let scanner = null;
-  let starting = false;
-  let accepted = false;
+const statusEl = document.getElementById('status');
+const resultEl = document.getElementById('result');
+const codeEl = document.getElementById('scannedCode');
+const startBtn = document.getElementById('startBtn');
+const switchBtn = document.getElementById('switchBtn');
+const photoInput = document.getElementById('photo');
+const manualInput = document.getElementById('manual');
 
-  const returnUrlParam = new URLSearchParams(window.location.search).get('return');
-  let returnUrl = null;
-  if (returnUrlParam) {
-    try {
-      const parsed = new URL(returnUrlParam);
-      if (parsed.protocol === 'https:' &&
-          parsed.hostname === 'script.google.com' &&
-          /^\/macros\/s\/[^/]+\/(exec|dev)$/.test(parsed.pathname)) {
-        returnUrl = parsed;
-      }
-    } catch (e) { /* Invalid return URL: stay on scanner */ }
-  }
+let reader = null;
+let busy = false;
+let running = false;
+let detected = false;
+let activeCameraId = null;
 
-  function state(message) { statusEl.textContent = message; }
+// ==========================================
+// RETURN URL VALIDATION
+// ==========================================
 
-  async function stopCamera() {
-    if (!scanner) return;
-    try { await scanner.stop(); } catch (e) { /* may not be running */ }
-    try { scanner.clear(); } catch (e) { /* optional cleanup */ }
-    scanner = null;
-  }
+const rawReturn =
+  new URLSearchParams(location.search).get('return');
 
-  async function onDetected(code) {
-    if (accepted) return;
-    accepted = true;
-    state('Code detected!');
-    scannedCodeEl.textContent = code;
-    resultEl.hidden = false;
-    retryBtn.hidden = false;
-    startBtn.hidden = true;
-    if (navigator.vibrate) navigator.vibrate(80);
-    await stopCamera();
-    if (returnUrl) {
-      returnUrl.searchParams.set('scan', code);
-      state('Opening matching product in Ranmac Inventory…');
-      window.location.assign(returnUrl.toString());
-    } else {
-      state('Code read. Open from Ranmac Inventory to search automatically.');
+let returnUrl = null;
+
+if (rawReturn) {
+  try {
+    const candidate = new URL(rawReturn);
+
+    if (
+      candidate.protocol === 'https:' &&
+      candidate.hostname === 'script.google.com' &&
+      /^\/macros\/s\/[^/]+\/(exec|dev)$/.test(
+        candidate.pathname
+      )
+    ) {
+      returnUrl = candidate;
     }
+  } catch (error) {
+    // Standalone scanner mode
+  }
+}
+
+// ==========================================
+// STATUS
+// ==========================================
+
+function setStatus(message) {
+  statusEl.textContent = message;
+}
+
+// ==========================================
+// CREATE SCANNER
+// ==========================================
+
+function makeReader() {
+  if (!window.Html5Qrcode) {
+    throw new Error(
+      'Scanner library could not load. ' +
+      'Check your internet connection.'
+    );
   }
 
-  async function startCamera() {
-    if (starting || scanner) return;
-    starting = true;
-    accepted = false;
-    resultEl.hidden = true;
-    retryBtn.hidden = true;
-    startBtn.hidden = true;
-    state('Requesting camera access…');
-    try {
-      if (typeof Html5Qrcode === 'undefined') {
-        throw new Error('Scanner library did not load. Check the internet connection.');
-      }
-      scanner = new Html5Qrcode('reader', { verbose: false });
-      await scanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: (w, h) => ({
-            width: Math.max(100, Math.min(320, Math.floor(w * 0.9))),
-            height: Math.max(90, Math.min(190, Math.floor(h * 0.5)))
-          }) },
-        onDetected,
-        () => {}
+  const F = Html5QrcodeSupportedFormats;
+
+  return new Html5Qrcode('reader', {
+    formatsToSupport: [
+      F.QR_CODE,
+      F.CODE_128,
+      F.CODE_39,
+      F.CODE_93,
+      F.EAN_13,
+      F.EAN_8,
+      F.UPC_A,
+      F.UPC_E,
+      F.ITF,
+      F.CODABAR,
+      F.DATA_MATRIX,
+      F.PDF_417
+    ],
+    verbose: false
+  });
+}
+
+// ==========================================
+// STOP CAMERA
+// ==========================================
+
+async function closeReader() {
+  const current = reader;
+  reader = null;
+  running = false;
+
+  if (!current) return;
+
+  try {
+    await current.stop();
+  } catch (error) {
+    // No active video
+  }
+
+  try {
+    current.clear();
+  } catch (error) {
+    // Already cleared
+  }
+}
+
+// ==========================================
+// CODE DETECTED
+// ==========================================
+
+async function acceptCode(text) {
+  const code = String(
+    text == null ? '' : text
+  ).trim();
+
+  if (!code || detected) return;
+
+  detected = true;
+  codeEl.textContent = code;
+  resultEl.hidden = false;
+
+  setStatus('Code detected: ' + code);
+
+  if (navigator.vibrate) {
+    navigator.vibrate(100);
+  }
+
+  await closeReader();
+
+  if (returnUrl) {
+    returnUrl.searchParams.set('scan', code);
+
+    setStatus(
+      'Code detected. Opening Ranmac Inventory…'
+    );
+
+    location.assign(returnUrl.toString());
+  } else {
+    setStatus(
+      'Code detected. Open the scanner from ' +
+      'Ranmac Inventory to search automatically.'
+    );
+  }
+}
+
+// ==========================================
+// START LIVE CAMERA
+// ==========================================
+
+async function startCamera(cameraId) {
+  if (busy) return;
+
+  busy = true;
+  detected = false;
+  resultEl.hidden = true;
+
+  startBtn.disabled = true;
+  switchBtn.disabled = true;
+
+  setStatus('Starting rear camera…');
+
+  try {
+    await closeReader();
+
+    if (
+      !window.isSecureContext ||
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+      throw new Error(
+        'Camera access requires HTTPS ' +
+        'and a supported browser.'
       );
-      if (!accepted) state('Scanning… Hold the code steady inside the frame.');
-    } catch (error) {
-      await stopCamera();
-      state('Camera unavailable: ' + (error && error.message ? error.message : String(error)) +
-        '. Allow camera access, then tap Start camera.');
-      startBtn.hidden = false;
-    } finally {
-      starting = false;
     }
+
+    reader = makeReader();
+
+    const camera =
+      cameraId || { facingMode: 'environment' };
+
+    // FULL CAMERA FRAME:
+    // No qrbox cropping.
+    await reader.start(
+      camera,
+      {
+        fps: 12,
+        disableFlip: true
+      },
+      acceptCode,
+      () => {
+        // A missed frame is normal.
+        // Continue scanning automatically.
+      }
+    );
+
+    running = true;
+
+    if (typeof camera === 'string') {
+      activeCameraId = camera;
+    }
+
+    setStatus(
+      'Camera active — scanning every frame. ' +
+      'Keep all barcode lines in view and ' +
+      'wait for automatic recognition.'
+    );
+
+  } catch (error) {
+    await closeReader();
+
+    setStatus(
+      'Scanner could not start: ' +
+      (
+        error && error.message
+          ? error.message
+          : String(error)
+      )
+    );
+
+  } finally {
+    busy = false;
+    startBtn.disabled = false;
+    switchBtn.disabled = false;
+  }
+}
+
+// ==========================================
+// SWITCH CAMERA
+// ==========================================
+
+async function switchCamera() {
+  if (busy) return;
+
+  if (!window.Html5Qrcode) {
+    setStatus('Scanner library not available.');
+    return;
   }
 
-  startBtn.addEventListener('click', startCamera);
-  retryBtn.addEventListener('click', startCamera);
-  document.getElementById('copyBtn').addEventListener('click', async () => {
+  try {
+    const cameras = await Html5Qrcode.getCameras();
+
+    if (!cameras.length) {
+      throw new Error('No cameras were found.');
+    }
+
+    const index = cameras.findIndex(
+      camera => camera.id === activeCameraId
+    );
+
+    const next =
+      cameras[(index + 1) % cameras.length];
+
+    activeCameraId = next.id;
+
+    await startCamera(next.id);
+
+  } catch (error) {
+    setStatus(
+      'Cannot switch camera: ' +
+      (
+        error && error.message
+          ? error.message
+          : String(error)
+      )
+    );
+  }
+}
+
+// ==========================================
+// PHOTO FALLBACK
+// ==========================================
+
+async function scanPhoto(file) {
+  if (!file || busy) return;
+
+  busy = true;
+  startBtn.disabled = true;
+  switchBtn.disabled = true;
+
+  detected = false;
+  resultEl.hidden = true;
+
+  setStatus('Reading barcode from image…');
+
+  try {
+    await closeReader();
+
+    reader = makeReader();
+
+    const code = await reader.scanFile(
+      file,
+      true
+    );
+
+    busy = false;
+    await acceptCode(code);
+
+  } catch (error) {
+    await closeReader();
+
+    setStatus(
+      'No readable barcode found in the photo. ' +
+      'Try a sharper, well-lit image.'
+    );
+
+  } finally {
+    busy = false;
+    startBtn.disabled = false;
+    switchBtn.disabled = false;
+    photoInput.value = '';
+  }
+}
+
+// ==========================================
+// BUTTON EVENTS
+// ==========================================
+
+startBtn.addEventListener('click', () => {
+  startCamera(activeCameraId);
+});
+
+switchBtn.addEventListener(
+  'click',
+  switchCamera
+);
+
+photoInput.addEventListener(
+  'change',
+  event => scanPhoto(event.target.files[0])
+);
+
+document.getElementById('manualBtn')
+  .addEventListener('click', () => {
+    const code = manualInput.value.trim();
+
+    if (!code) {
+      setStatus('Enter a code first.');
+      return;
+    }
+
+    acceptCode(code);
+  });
+
+manualInput.addEventListener(
+  'keydown',
+  event => {
+    if (event.key === 'Enter') {
+      document.getElementById('manualBtn').click();
+    }
+  }
+);
+
+document.getElementById('copyBtn')
+  .addEventListener('click', async () => {
     try {
-      await navigator.clipboard.writeText(scannedCodeEl.textContent);
-      state('Copied the scanned code.');
-    } catch (e) {
-      state('Select and copy the code shown above.');
+      await navigator.clipboard.writeText(
+        codeEl.textContent
+      );
+
+      setStatus('Scanned code copied.');
+    } catch (error) {
+      setStatus('Copy the visible code manually.');
     }
   });
-  window.addEventListener('pagehide', () => { if (scanner) stopCamera(); });
-  startCamera();
+
+window.addEventListener('pagehide', () => {
+  closeReader();
+});
+
+// ==========================================
+// AUTO START ON PAGE OPEN
+// ==========================================
+
+startCamera();
+
 </script>
 </body>
 </html>
