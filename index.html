@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Ranmac Live Scanner 2.6</title>
+  <title>Ranmac Live Scanner 2.7</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; }
@@ -73,6 +73,29 @@
       /* Optional: view the entire portrait video with black side bars. */
       object-fit: contain !important;
     }
+    /* The captured frame remains visible after the camera stream closes. */
+    #readerWrap { position: relative; }
+    #frozenFrame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 20;
+      pointer-events: none;
+    }
+    #frozenLabel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 21;
+      pointer-events: none;
+      padding: 6px 9px;
+      border-radius: 7px;
+      color: #dcfce7;
+      background: rgba(5, 46, 22, 0.84);
+      font-size: 12px;
+      font-weight: 700;
+    }
     #reader canvas { max-height: 280px; }
     #status { white-space: pre-line; overflow-wrap: anywhere; line-height: 1.5; font-size: 13px; }
     .result-code {
@@ -88,7 +111,7 @@
 <body>
 <main>
   <h1>Ranmac Live Scanner</h1>
-  <p>Version 2.6 · Fill-to-frame camera preview · Fast, verified scanning</p>
+  <p>Version 2.7 · Freeze-frame confirmation · Fast, verified scanning</p>
 
   <div class="panel">
     <label for="cameraSelect">Camera lens</label>
@@ -117,7 +140,11 @@
     </div>
   </div>
 
-  <div id="readerWrap"><div id="reader"></div></div>
+  <div id="readerWrap">
+    <div id="reader"></div>
+    <canvas id="frozenFrame" aria-label="Frozen camera preview" hidden></canvas>
+    <span id="frozenLabel" hidden>Frame captured</span>
+  </div>
   <div class="panel" id="status" role="status">Initializing camera…</div>
 
   <div class="panel" id="zoomPanel" hidden>
@@ -129,7 +156,7 @@
   <div class="panel" id="resultPanel" hidden>
     <div class="success">Code detected and verified</div>
     <div class="result-code" id="scannedCode"></div>
-    <p class="small">Check the number before opening the product. A repeated read cannot guarantee that a partial barcode is the intended one.</p>
+    <p class="small">The camera preview is frozen after a verified scan. Check the number before opening the product; repeated reads cannot guarantee the intended barcode was captured.</p>
     <div class="buttons">
       <button type="button" id="useCodeBtn" class="primary">Use this code</button>
       <button type="button" id="againBtn" class="secondary">Scan again</button>
@@ -152,7 +179,7 @@
 'use strict';
 
 // ========================================
-// RANMAC LIVE SCANNER — VERSION 2.6
+// RANMAC LIVE SCANNER — VERSION 2.7
 // ========================================
 const REQUIRED_READS = 2;
 const MIN_READ_SPACING_MS = 300;
@@ -284,6 +311,61 @@ function validRetailChecksum(code, format) {
   return (10 - sum % 10) % 10 === Number(code[code.length - 1]);
 }
 
+// Draw exactly what the user sees in the live preview before closing the stream.
+// This releases the camera afterward instead of leaving a paused camera active.
+function captureFrozenFrame() {
+  const video = document.querySelector('#reader video');
+  const box = $('reader');
+  const canvas = $('frozenFrame');
+  if (!video || !video.videoWidth || !video.videoHeight) return false;
+
+  const width = box.clientWidth;
+  const height = box.clientHeight;
+  if (!width || !height) return false;
+
+  try {
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(width * pixelRatio);
+    canvas.height = Math.round(height * pixelRatio);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return false;
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(0, 0, width, height);
+
+    const sourceWidth = video.videoWidth;
+    const sourceHeight = video.videoHeight;
+    if ($('viewMode').value === 'full') {
+      // Match CSS object-fit: contain, including the empty side bands.
+      const scale = Math.min(width / sourceWidth, height / sourceHeight);
+      const w = sourceWidth * scale;
+      const h = sourceHeight * scale;
+      ctx.drawImage(video, (width - w) / 2, (height - h) / 2, w, h);
+    } else {
+      // Match CSS object-fit: cover and center-crop portrait camera video.
+      const scale = Math.max(width / sourceWidth, height / sourceHeight);
+      const croppedWidth = width / scale;
+      const croppedHeight = height / scale;
+      const sx = (sourceWidth - croppedWidth) / 2;
+      const sy = (sourceHeight - croppedHeight) / 2;
+      ctx.drawImage(video, sx, sy, croppedWidth, croppedHeight, 0, 0, width, height);
+    }
+
+    canvas.hidden = false;
+    $('frozenLabel').hidden = false;
+    return true;
+  } catch (error) {
+    // A frozen frame is optional; never block a successfully decoded barcode.
+    clearFrozenFrame();
+    return false;
+  }
+}
+
+function clearFrozenFrame() {
+  $('frozenFrame').hidden = true;
+  $('frozenLabel').hidden = true;
+}
+
 async function onDecoded(value, decodedResult, expectedSession) {
   if (expectedSession !== session || verified || busy) return;
   const code = String(value == null ? '' : value).trim();
@@ -308,10 +390,13 @@ async function onDecoded(value, decodedResult, expectedSession) {
     verified = true;
     confirmedCode = code;
     if (navigator.vibrate) navigator.vibrate(85);
+    const frameSaved = captureFrozenFrame(); // Must happen BEFORE stopScanner().
     await stopScanner();
     $('scannedCode').textContent = code;
     $('resultPanel').hidden = false;
-    message('Verified: two matching reads. Review the code below.');
+    message(frameSaved
+      ? 'Verified: two matching reads. Camera image frozen for review; camera is off.'
+      : 'Verified: two matching reads. Review the code below.');
     if ($('autoOpen').checked) sendToInventory();
   }
 }
@@ -341,6 +426,7 @@ async function startCamera(requested = 'auto') {
   verified = false;
   confirmedCode = '';
   resetCandidate();
+  clearFrozenFrame();
   $('resultPanel').hidden = true;
   const originalCamera = lastWorkingCamera;
   message('Starting camera…');
@@ -412,6 +498,7 @@ function sendToInventory() {
   location.assign(target.toString());
 }
 function showManualResult(code) {
+  clearFrozenFrame();
   confirmedCode = String(code || '').trim();
   if (!confirmedCode) return message('Enter a code first.');
   verified = true;
@@ -434,6 +521,8 @@ $('refreshBtn').addEventListener('click', async () => {
 });
 $('scanMode').addEventListener('change', () => startCamera($('cameraSelect').value));
 $('viewMode').addEventListener('change', () => {
+  // A frozen image retains the appearance captured at the moment of scanning.
+  // Use Scan again to create a preview in the newly selected mode.
   $('readerWrap').classList.toggle('show-full', $('viewMode').value === 'full');
   storeValue('ranmacViewMode', $('viewMode').value);
   message($('viewMode').value === 'fill'
@@ -474,6 +563,7 @@ $('photo').addEventListener('change', async event => {
   const file = event.target.files?.[0];
   if (!file || busy) return;
   setBusy(true);
+  clearFrozenFrame();
   try {
     await stopScanner();
     scanner = newScanner();
