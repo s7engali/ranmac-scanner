@@ -3,173 +3,238 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Ranmac Live Scanner 2.3</title>
+  <title>Ranmac Live Scanner 2.5</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; background: #0b1220; color: #f8fafc; font-family: system-ui, Arial, sans-serif; }
-    main { max-width: 560px; margin: auto; padding: 22px 16px 44px; }
-    h1 { margin: 0 0 5px; font-size: 25px; }
-    p { color: #cbd5e1; line-height: 1.5; font-size: 14px; }
-    .panel { background: #1e293b; border-radius: 13px; padding: 15px; margin: 13px 0; }
-    label { display: block; margin: 8px 0; font-size: 14px; font-weight: 600; }
-    select, input, button { width: 100%; border-radius: 9px; padding: 13px; font-size: 16px; }
-    select, input { border: 1px solid #64748b; background: #0f172a; color: white; }
-    button { border: 0; background: #f8fafc; color: #0f172a; font-weight: 700; cursor: pointer; }
-    button.secondary { background: #334155; color: #fff; }
-    button:disabled { opacity: .55; }
-    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-    #cameraStage { position: relative; margin-top: 14px; }
-    #reader { width: 100%; min-height: 180px; background: #030712; border: 1px solid #475569; border-radius: 13px; overflow: hidden; }
-    #reader video { max-width: 100%; }
-    #aimGuide { position: absolute; pointer-events: none; left: 8%; width: 84%; top: 36%; height: 28%; border: 2px dashed rgba(255,255,255,.8); border-radius: 9px; box-shadow: 0 0 0 1px rgba(0,0,0,.18); }
-    #status { line-height: 1.5; overflow-wrap: anywhere; }
-    #zoomControls { margin-top: 14px; }
-    #zoom { padding: 0; accent-color: #38bdf8; }
-    .small { font-size: 13px; color: #cbd5e1; }
-    .code { font: 700 19px ui-monospace, Consolas, monospace; overflow-wrap: anywhere; margin: 9px 0; }
-    .checkRow { display: flex; align-items: flex-start; gap: 9px; font-size: 14px; line-height: 1.5; }
-    .checkRow input { width: 20px; height: 20px; flex: 0 0 auto; margin: 1px 0 0; accent-color: #38bdf8; }
-    .checkRow label { margin: 0; font-weight: 500; }
-    .resultPanel { border: 1px solid #38bdf8; }
-    .hint { padding: 8px 10px; border-radius: 9px; background: #0f172a; font-size: 13px; color: #dbeafe; }
+    body {
+      margin: 0;
+      background: #0b1220;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, Arial, sans-serif;
+    }
+    main { max-width: 560px; margin: 0 auto; padding: 18px 14px 42px; }
+    h1 { margin: 0 0 6px; font-size: 25px; line-height: 1.2; }
+    p { margin: 6px 0 13px; color: #cbd5e1; font-size: 14px; line-height: 1.5; }
+    .panel {
+      margin: 12px 0;
+      padding: 14px;
+      border: 1px solid #334155;
+      background: #172337;
+      border-radius: 14px;
+    }
+    .small { font-size: 12px; color: #cbd5e1; line-height: 1.5; }
+    label { display: block; margin: 9px 0 6px; font-size: 13px; font-weight: 600; }
+    select, input[type="text"], input[type="file"] {
+      width: 100%; min-height: 43px; padding: 10px;
+      border: 1px solid #64748b; border-radius: 9px;
+      color: #fff; background: #0f172a; font-size: 15px;
+    }
+    input[type="range"] { width: 100%; accent-color: #22c55e; }
+    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
+    button {
+      min-height: 44px; padding: 10px 12px; border: 0; border-radius: 9px;
+      color: #0f172a; background: #e2e8f0; font-weight: 700; font-size: 14px;
+      cursor: pointer;
+    }
+    button.secondary { color: #f8fafc; background: #334155; }
+    button.primary { color: #052e16; background: #4ade80; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .full { width: 100%; margin-top: 10px; }
+    .switch { display: flex; align-items: center; gap: 9px; margin-top: 12px; }
+    .switch input { width: 18px; height: 18px; accent-color: #4ade80; }
+    .switch label { margin: 0; font-weight: 400; font-size: 13px; }
+    #readerWrap {
+      overflow: hidden;
+      border-radius: 12px;
+      background: #020617;
+      border: 1px solid #475569;
+    }
+    /* Keep the preview compact rather than stretching down the phone. */
+    #reader {
+      width: 100% !important;
+      height: clamp(225px, 58vw, 280px) !important;
+      max-height: 280px;
+      overflow: hidden !important;
+      background: #020617;
+      position: relative;
+    }
+    #reader video {
+      display: block !important;
+      width: 100% !important;
+      height: clamp(225px, 58vw, 280px) !important;
+      max-height: 280px !important;
+      object-fit: contain !important;
+      background: #020617;
+    }
+    #reader canvas { max-height: 280px; }
+    #status { white-space: pre-line; overflow-wrap: anywhere; line-height: 1.5; font-size: 13px; }
+    .result-code {
+      padding: 12px; margin: 9px 0; border-radius: 9px;
+      background: #061525; border: 1px solid #475569;
+      font: 700 18px ui-monospace, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+    .success { color: #86efac; font-weight: 700; }
     [hidden] { display: none !important; }
   </style>
 </head>
 <body>
 <main>
   <h1>Ranmac Live Scanner</h1>
-  <p>Version 2.3 · Steady-scan verification. Keep the <strong>entire</strong> barcode visible, including space on both ends.</p>
+  <p>Version 2.5 · Compact camera preview · Fast, verified barcode and QR scanning</p>
 
   <div class="panel">
     <label for="cameraSelect">Camera lens</label>
-    <select id="cameraSelect">
-      <option value="auto">Automatic rear camera</option>
+    <select id="cameraSelect"><option value="auto">Automatic rear camera</option></select>
+    <div class="buttons">
+      <button type="button" id="startBtn">Use camera / Restart</button>
+      <button type="button" id="refreshBtn" class="secondary">Refresh lenses</button>
+    </div>
+    <p class="small">If the preview looks ultrawide, choose a Back / Rear / Main camera. Some phones expose only one combined rear camera.</p>
+
+    <label for="scanMode">Scanning mode</label>
+    <select id="scanMode">
+      <option value="barcode">Barcode — wide, short target</option>
+      <option value="qr">QR code — square target</option>
     </select>
+    <div class="switch">
+      <input type="checkbox" id="autoOpen">
+      <label for="autoOpen">Automatically return to inventory after a verified read (optional)</label>
+    </div>
+  </div>
+
+  <div id="readerWrap"><div id="reader"></div></div>
+  <div class="panel" id="status" role="status">Initializing camera…</div>
+
+  <div class="panel" id="zoomPanel" hidden>
+    <label for="zoom">Camera zoom: <span id="zoomValue">1.0×</span></label>
+    <input id="zoom" type="range" min="1" max="2" step="0.1" value="1">
+    <div class="small">Zoom is available only when the browser exposes it.</div>
+  </div>
+
+  <div class="panel" id="resultPanel" hidden>
+    <div class="success">Code detected and verified</div>
+    <div class="result-code" id="scannedCode"></div>
+    <p class="small">Check the number before opening the product. A repeated read cannot guarantee that a partial barcode is the intended one.</p>
     <div class="buttons">
-      <button id="startBtn" type="button">Use selected camera</button>
-      <button id="refreshBtn" class="secondary" type="button">Refresh cameras</button>
+      <button type="button" id="useCodeBtn" class="primary">Use this code</button>
+      <button type="button" id="againBtn" class="secondary">Scan again</button>
     </div>
-    <p class="small">If the camera looks ultrawide, select a Back/Rear/Main camera. The browser may not list every physical lens.</p>
-  </div>
-
-  <div id="cameraStage">
-    <div id="reader"></div>
-    <div id="aimGuide" aria-hidden="true"></div>
-  </div>
-  <p class="small">The dashed box is an aiming guide, not a crop. Keep the whole barcode inside it; for QR codes, keep the complete square in view.</p>
-  <div class="panel" id="status" role="status" aria-live="polite">Checking available cameras…</div>
-
-  <div class="panel" id="zoomControls" hidden>
-    <label for="zoom">Camera zoom: <span id="zoomValue">1×</span></label>
-    <input type="range" id="zoom" min="1" max="3" step="0.1" value="1">
-    <p class="small">Increase zoom only if the bars remain sharp.</p>
-  </div>
-
-  <div class="panel">
-    <div class="checkRow">
-      <input id="autoReturn" type="checkbox">
-      <label for="autoReturn">Auto-open inventory after stable detection <span class="small">(off by default; review the scanned code first for accuracy)</span></label>
-    </div>
-  </div>
-
-  <div class="panel resultPanel" id="result" hidden>
-    <strong>Barcode recognized — verify the entire code</strong>
-    <div class="code" id="scannedCode"></div>
-    <p class="small">Make sure this matches the printed code on the package before continuing.</p>
-    <button id="confirmBtn" type="button">Use this code</button>
-    <div class="buttons">
-      <button class="secondary" id="againBtn" type="button">Scan again</button>
-      <button class="secondary" id="copyBtn" type="button">Copy code</button>
-    </div>
+    <button type="button" id="copyBtn" class="secondary full">Copy code</button>
   </div>
 
   <div class="panel">
     <strong>Backup methods</strong>
-    <p>For long motorcycle-part barcodes, move the phone farther back until both ends are visible, then adjust focus.</p>
-    <label for="photo">Read a barcode photo</label>
+    <p class="small">For difficult packages, use a clearer photo or type the part number.</p>
+    <label for="photo">Read barcode from a photo</label>
     <input id="photo" type="file" accept="image/*" capture="environment">
-    <label for="manual">Or enter a barcode / part number</label>
+    <label for="manual">Manually enter barcode or part number</label>
     <input id="manual" type="text" placeholder="91009-KVY-961" autocomplete="off">
-    <button id="manualBtn" class="secondary" type="button" style="margin-top:10px">Use this code</button>
+    <button type="button" id="manualBtn" class="secondary full">Review typed code</button>
   </div>
-  <p class="small">Read-only scanner. Open from Ranmac Inventory to return to product search. Stable scanning reduces premature detections, but cannot guarantee the entire printed symbol was read.</p>
+  <p class="small">This scanner is read-only. Open it using the Ranmac Inventory web app to return your result to Google Sheets search. Printed-text OCR will be a separate future feature.</p>
 </main>
 <script>
 'use strict';
+
+// ========================================
+// RANMAC LIVE SCANNER — VERSION 2.5
+// ========================================
+const REQUIRED_READS = 2;
+const MIN_READ_SPACING_MS = 300;
+const MAX_READ_GAP_MS = 1600;
 const $ = id => document.getElementById(id);
-const cameraSelect = $('cameraSelect');
-const statusEl = $('status');
-let scanner = null;
-let busy = false;
-let detected = false;
-let activeCameraId = null;
-let knownCameras = [];
-let candidate = null;
-let pendingCode = null;
-let navigating = false;
-let session = 0;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Require several matching results *over time* so one lucky/partial frame
-// does not immediately navigate away. These are not barcode integrity checks.
-const VERIFY = { matches: 4, minMs: 1200, maxGapMs: 900 };
+let scanner = null;
+let busy = false;
+let verified = false;
+let session = 0;
+let lastWorkingCamera = 'auto';
+let availableCameras = [];
+let candidate = '';
+let candidateReads = 0;
+let firstReadTime = 0;
+let lastReadTime = 0;
+let confirmedCode = '';
 
+// Only return to a real Google Apps Script deployment URL.
 let returnUrl = null;
 try {
   const raw = new URLSearchParams(location.search).get('return');
   if (raw) {
-    const url = new URL(raw);
-    if (url.protocol === 'https:' &&
-        url.hostname === 'script.google.com' &&
-        /^\/macros\/s\/[^/]+\/(exec|dev)$/.test(url.pathname)) {
-      returnUrl = url;
+    const parsed = new URL(raw);
+    if (parsed.protocol === 'https:' &&
+        parsed.hostname === 'script.google.com' &&
+        /^\/macros\/s\/[^/]+\/(exec|dev)$/.test(parsed.pathname)) {
+      returnUrl = parsed;
     }
   }
 } catch (_) {}
 
-function status(message) { statusEl.textContent = message; }
-function errorText(error) { return (error && error.message) || String(error); }
+function message(text) { $('status').textContent = text; }
+function errorMessage(error) { return (error && error.message) || String(error); }
 function setBusy(value) {
   busy = value;
   $('startBtn').disabled = value;
   $('refreshBtn').disabled = value;
-  cameraSelect.disabled = value;
+  $('cameraSelect').disabled = value;
+  $('scanMode').disabled = value;
 }
-function resetCandidate() { candidate = null; }
+function resetCandidate() {
+  candidate = '';
+  candidateReads = 0;
+  firstReadTime = 0;
+  lastReadTime = 0;
+}
+function storedValue(key) {
+  try { return localStorage.getItem(key); } catch (_) { return null; }
+}
+function storeValue(key, value) {
+  try { localStorage.setItem(key, value); } catch (_) {}
+}
 
-function scoreCamera(camera) {
-  const s = (camera.label || '').toLowerCase();
+function cameraScore(item) {
+  const s = (item.label || '').toLowerCase();
   let score = 0;
   if (/back|rear|environment/.test(s)) score += 30;
-  if (/main|primary|wide camera(?!.*ultra)/.test(s)) score += 15;
-  if (/camera2?\s*0|camera\s*0|back camera 0/.test(s)) score += 9;
-  if (/ultra[ -]?wide|0[.,]5x|macro|depth|telephoto|tele camera/.test(s)) score -= 35;
-  if (/front|user|selfie/.test(s)) score -= 60;
+  if (/main|primary|back camera 0/.test(s)) score += 20;
+  if (/ultra[ -]?wide|0[.,]5x|macro|depth|telephoto/.test(s)) score -= 45;
+  if (/front|selfie|user/.test(s)) score -= 100;
   return score;
 }
-function choosePreferredCamera() {
-  let saved = null;
-  try { saved = localStorage.getItem('ranmacCameraId'); } catch (_) {}
-  if (saved && knownCameras.some(c => c.id === saved)) return saved;
-  if (!knownCameras.length) return 'auto';
-  const ranked = knownCameras.slice().sort((a, b) => scoreCamera(b) - scoreCamera(a));
-  return scoreCamera(ranked[0]) > 0 ? ranked[0].id : 'auto';
-}
 async function refreshCameras() {
-  if (!window.Html5Qrcode) throw new Error('Scanner library did not load. Check your connection.');
-  knownCameras = await Html5Qrcode.getCameras();
-  const previous = cameraSelect.value;
-  cameraSelect.replaceChildren();
-  cameraSelect.add(new Option('Automatic rear camera', 'auto'));
-  knownCameras.forEach((camera, index) =>
-    cameraSelect.add(new Option(camera.label || `Camera ${index + 1}`, camera.id)));
-  cameraSelect.value = knownCameras.some(c => c.id === previous)
-    ? previous : choosePreferredCamera();
-  return cameraSelect.value;
+  if (!window.Html5Qrcode) throw new Error('Barcode scanner library did not load.');
+  availableCameras = await Html5Qrcode.getCameras();
+  const select = $('cameraSelect');
+  const previous = select.value;
+  select.replaceChildren(new Option('Automatic rear camera', 'auto'));
+  availableCameras.forEach((camera, index) => {
+    select.add(new Option(camera.label || `Camera ${index + 1}`, camera.id));
+  });
+  const saved = storedValue('ranmacPreferredCamera');
+  const isListed = value => availableCameras.some(camera => camera.id === value);
+  const best = availableCameras.slice().sort((a, b) => cameraScore(b) - cameraScore(a))[0];
+  select.value = isListed(previous) ? previous :
+    isListed(saved) ? saved :
+    (best && cameraScore(best) > 0 ? best.id : 'auto');
+  return select.value;
 }
-function makeScanner() {
-  if (!window.Html5Qrcode) throw new Error('Barcode library not available.');
+
+function getQrBox(width, height) {
+  const limitW = Math.max(40, width - 20);
+  const limitH = Math.max(40, height - 20);
+  if ($('scanMode').value === 'qr') {
+    const side = Math.max(40, Math.floor(Math.min(limitW, limitH) * 0.8));
+    return { width: side, height: side };
+  }
+  return {
+    width: Math.max(40, Math.floor(Math.min(limitW, width * 0.89))),
+    height: Math.max(40, Math.floor(Math.min(limitH, Math.max(85, height * 0.40), 125)))
+  };
+}
+function newScanner() {
   const F = Html5QrcodeSupportedFormats;
   return new Html5Qrcode('reader', {
     formatsToSupport: [
@@ -181,234 +246,239 @@ function makeScanner() {
   });
 }
 async function stopScanner() {
-  session++;
-  const old = scanner;
+  // Ignore callbacks from the previous camera session.
+  session += 1;
+  const current = scanner;
   scanner = null;
-  $('zoomControls').hidden = true;
-  if (!old) return;
-  try { if (old.isScanning) await old.stop(); } catch (_) {}
-  try { old.clear(); } catch (_) {}
+  $('zoomPanel').hidden = true;
+  if (!current) return;
+  try { if (current.isScanning) await current.stop(); } catch (_) {}
+  try { current.clear(); } catch (_) {}
 }
 
-// Called on every successful live camera decode (not on photo/manual entry).
-function onLiveDecode(value) {
-  if (detected || busy || navigating) return;
+// Most EAN/UPC retail barcodes contain a check digit.
+// Additional verification is optional, not a substitute for reviewing the result.
+function validRetailChecksum(code, format) {
+  const needed = { EAN_13: 13, EAN_8: 8, UPC_A: 12 }[format];
+  if (!needed) return true;
+  if (!/^\d+$/.test(code) || code.length !== needed) return false;
+  let sum = 0;
+  let weight = 3;
+  for (let i = code.length - 2; i >= 0; i--) {
+    sum += Number(code[i]) * weight;
+    weight = weight === 3 ? 1 : 3;
+  }
+  return (10 - sum % 10) % 10 === Number(code[code.length - 1]);
+}
+
+async function onDecoded(value, decodedResult, expectedSession) {
+  if (expectedSession !== session || verified || busy) return;
   const code = String(value == null ? '' : value).trim();
   if (!code) return;
+  const format = decodedResult?.result?.format?.formatName || '';
+  if (!validRetailChecksum(code, format)) return;
+
   const now = performance.now();
-  if (!candidate || candidate.code !== code || now - candidate.last > VERIFY.maxGapMs) {
-    candidate = { code, first: now, last: now, count: 1 };
-  } else {
-    candidate.count++;
-    candidate.last = now;
+  if (candidate !== code || now - lastReadTime > MAX_READ_GAP_MS) {
+    candidate = code;
+    candidateReads = 1;
+    firstReadTime = now;
+    lastReadTime = now;
+    message('Barcode detected. Verifying… 1 / 2');
+    return;
   }
-  const elapsed = now - candidate.first;
-  if (candidate.count >= VERIFY.matches && elapsed >= VERIFY.minMs) {
-    showVerifiedCode(code);
-  } else {
-    status(`Reading ${code} — ${candidate.count} matching reads. Hold the WHOLE barcode steady for verification…`);
-  }
-}
-function onLiveMiss() {
-  if (candidate && performance.now() - candidate.last > VERIFY.maxGapMs) {
-    resetCandidate();
-    if (!detected && !busy) status('Scanning… center the entire barcode inside the guide, with both ends visible.');
-  }
-}
+  if (now - lastReadTime < MIN_READ_SPACING_MS) return;
 
-async function showVerifiedCode(value) {
-  const code = String(value == null ? '' : value).trim();
-  if (!code || detected) return;
-  detected = true;
-  pendingCode = code;
-  resetCandidate();
-  $('scannedCode').textContent = code;
-  $('result').hidden = false;
-  status('Stable code recognized: ' + code + '. Verify the printed barcode.');
-  if (navigator.vibrate) navigator.vibrate(90);
-  try { if (scanner && scanner.isScanning) scanner.pause(true); } catch (_) {}
-  if ($('autoReturn').checked) await finalizeCode();
-}
-
-async function finalizeCode() {
-  if (!pendingCode || navigating) return;
-  navigating = true;
-  $('confirmBtn').disabled = true;
-  $('againBtn').disabled = true;
-  const code = pendingCode;
-  status('Using code: ' + code);
-  await stopScanner();
-  if (returnUrl) {
-    returnUrl.searchParams.set('scan', code);
-    status('Opening Ranmac Inventory…');
-    location.assign(returnUrl.toString());
-  } else {
-    status('Code confirmed: ' + code + '. Open the scanner from Ranmac Inventory to search there.');
-    navigating = false;
-    $('againBtn').disabled = false;
-    $('confirmBtn').disabled = false;
+  lastReadTime = now;
+  candidateReads += 1;
+  if (candidateReads >= REQUIRED_READS && now - firstReadTime >= MIN_READ_SPACING_MS) {
+    verified = true;
+    confirmedCode = code;
+    if (navigator.vibrate) navigator.vibrate(85);
+    await stopScanner();
+    $('scannedCode').textContent = code;
+    $('resultPanel').hidden = false;
+    message('Verified: two matching reads. Review the code below.');
+    if ($('autoOpen').checked) sendToInventory();
   }
 }
 
 function enableZoom() {
-  $('zoomControls').hidden = true;
+  $('zoomPanel').hidden = true;
   if (!scanner || !scanner.isScanning) return;
   try {
     const caps = scanner.getRunningTrackCapabilities();
-    if (!caps.zoom || !Number.isFinite(caps.zoom.min) ||
-        !Number.isFinite(caps.zoom.max) || caps.zoom.max <= caps.zoom.min) return;
-    const current = scanner.getRunningTrackSettings();
+    const range = caps.zoom;
+    if (!range || !Number.isFinite(range.min) ||
+        !Number.isFinite(range.max) || range.max <= range.min) return;
+    const settings = scanner.getRunningTrackSettings();
     const slider = $('zoom');
-    slider.min = String(caps.zoom.min);
-    slider.max = String(caps.zoom.max);
-    slider.step = String(caps.zoom.step || 0.1);
-    slider.value = String(current.zoom || caps.zoom.min);
+    slider.min = String(range.min);
+    slider.max = String(range.max);
+    slider.step = String(range.step || 0.1);
+    slider.value = String(settings.zoom || range.min);
     $('zoomValue').textContent = Number(slider.value).toFixed(1) + '×';
-    $('zoomControls').hidden = false;
+    $('zoomPanel').hidden = false;
   } catch (_) {}
 }
-async function startCamera(cameraId, allowRestore = true) {
+
+async function startCamera(requested = 'auto') {
   if (busy) return;
   setBusy(true);
-  detected = false;
-  pendingCode = null;
+  verified = false;
+  confirmedCode = '';
   resetCandidate();
-  navigating = false;
-  $('result').hidden = true;
-  $('confirmBtn').disabled = false;
-  $('againBtn').disabled = false;
-  const previous = activeCameraId;
-  status('Starting camera…');
+  $('resultPanel').hidden = true;
+  const originalCamera = lastWorkingCamera;
+  message('Starting camera…');
   try {
-    if (!isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new Error('This scanner requires HTTPS and a browser with camera access.');
+    if (!window.Html5Qrcode) throw new Error('Scanner library did not load.');
+    if (!isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      throw new Error('Camera access requires HTTPS and a supported browser.');
     }
     await stopScanner();
-    await delay(350);
-    const selected = cameraId && cameraId !== 'auto' ? cameraId : null;
-    const source = selected || { facingMode: 'environment' };
-    const highRes = selected
-      ? { deviceId: { exact: selected }, width: { ideal: 1920 }, height: { ideal: 1080 } }
-      : { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } };
+    await delay(250); // Allow the Android camera to release its previous stream.
+
+    const choices = requested !== 'auto' ? [requested, 'auto'] : ['auto'];
     let started = false;
-    let lastError;
-    for (const options of [
-      { fps: 12, disableFlip: false, videoConstraints: highRes },
-      { fps: 10, disableFlip: false }
-    ]) {
-      try {
-        scanner = makeScanner();
-        const currentSession = session;
-        await scanner.start(source, options,
-          code => { if (currentSession === session) onLiveDecode(code); },
-          () => { if (currentSession === session) onLiveMiss(); });
-        started = true;
-        break;
-      } catch (e) {
-        lastError = e;
-        await stopScanner();
-        await delay(280);
+    let lastError = null;
+    let workingChoice = 'auto';
+    for (const choice of choices) {
+      const cameraSource = choice === 'auto' ? { facingMode: 'environment' } : choice;
+      const configs = [
+        { fps: 12, qrbox: getQrBox, aspectRatio: 16 / 9, disableFlip: false },
+        { fps: 10, qrbox: getQrBox, aspectRatio: 4 / 3, disableFlip: false },
+        { fps: 10, qrbox: getQrBox, disableFlip: false }
+      ];
+      for (const config of configs) {
+        try {
+          scanner = newScanner();
+          const expectedSession = session;
+          await scanner.start(
+            cameraSource,
+            config,
+            (value, details) => onDecoded(value, details, expectedSession),
+            () => {} // Failed frames are normal; keep scanning.
+          );
+          started = true;
+          workingChoice = choice;
+          break;
+        } catch (error) {
+          lastError = error;
+          await stopScanner();
+          await delay(240);
+        }
       }
+      if (started) break;
     }
-    if (!started) throw lastError || new Error('Unable to open selected lens.');
-    activeCameraId = selected || null;
-    try {
-      if (selected) localStorage.setItem('ranmacCameraId', selected);
-      else localStorage.removeItem('ranmacCameraId');
-    } catch (_) {}
-    const label = knownCameras.find(c => c.id === selected)?.label || 'Automatic rear camera';
-    status('Camera active: ' + label + '. Hold the FULL barcode steady; multiple matching reads required.');
+    if (!started) throw lastError || new Error('Unable to open a camera.');
+
+    lastWorkingCamera = workingChoice;
+    $('cameraSelect').value = workingChoice;
+    if (workingChoice !== 'auto') storeValue('ranmacPreferredCamera', workingChoice);
+    const cameraLabel = availableCameras.find(c => c.id === workingChoice)?.label || 'Automatic rear camera';
     enableZoom();
-  } catch (e) {
-    status('Could not open selected camera: ' + errorText(e));
-    if (allowRestore && previous !== cameraId) {
-      await stopScanner();
-      setBusy(false);
-      cameraSelect.value = previous || 'auto';
-      status('Camera switch failed. Trying the previous camera…');
-      await startCamera(previous || 'auto', false);
-      return;
-    }
+    message('Camera active: ' + cameraLabel + '\nKeep the ENTIRE barcode inside the guide. Two spaced matching reads are required.');
+  } catch (error) {
+    message('Camera could not start: ' + errorMessage(error) +
+      '\nTry Chrome, allow camera permission, or select a different lens.');
+    $('cameraSelect').value = originalCamera;
   } finally {
     setBusy(false);
   }
 }
 
-$('startBtn').addEventListener('click', () => startCamera(cameraSelect.value));
+function sendToInventory() {
+  if (!confirmedCode) return message('Scan or enter a code first.');
+  if (!returnUrl) {
+    return message('Code ready: ' + confirmedCode +
+      '\nOpen the scanner from Ranmac Inventory to return automatically.');
+  }
+  const target = new URL(returnUrl.toString());
+  target.searchParams.set('scan', confirmedCode);
+  location.assign(target.toString());
+}
+function showManualResult(code) {
+  confirmedCode = String(code || '').trim();
+  if (!confirmedCode) return message('Enter a code first.');
+  verified = true;
+  $('scannedCode').textContent = confirmedCode;
+  $('resultPanel').hidden = false;
+  message('Code ready. Review it below before using it.');
+}
+
+$('startBtn').addEventListener('click', () => startCamera($('cameraSelect').value));
 $('refreshBtn').addEventListener('click', async () => {
   if (busy) return;
   setBusy(true);
   try {
-    const chosen = await refreshCameras();
-    status(`Found ${knownCameras.length} camera(s). Selected: ` +
-      (knownCameras.find(c => c.id === chosen)?.label || 'Automatic rear camera'));
-  } catch (e) { status('Cannot list cameras: ' + errorText(e)); }
-  finally { setBusy(false); }
+    const selected = await refreshCameras();
+    message('Found ' + availableCameras.length + ' camera(s). Selected: ' +
+      (availableCameras.find(c => c.id === selected)?.label || 'Automatic rear camera'));
+  } catch (error) {
+    message('Cannot list cameras: ' + errorMessage(error));
+  } finally { setBusy(false); }
 });
-$('zoom').addEventListener('input', async () => {
-  if (!scanner || !scanner.isScanning) return;
+$('scanMode').addEventListener('change', () => startCamera($('cameraSelect').value));
+$('zoom').addEventListener('change', async () => {
+  if (!scanner?.isScanning) return;
   const zoom = Number($('zoom').value);
-  $('zoomValue').textContent = zoom.toFixed(1) + '×';
-  try { await scanner.applyVideoConstraints({ advanced: [{ zoom }] }); }
-  catch (e) { status('Zoom not supported on this camera: ' + errorText(e)); }
+  try {
+    await scanner.applyVideoConstraints({ advanced: [{ zoom }] });
+    $('zoomValue').textContent = zoom.toFixed(1) + '×';
+  } catch (error) {
+    message('Zoom is not available on this lens: ' + errorMessage(error));
+  }
+});
+$('autoOpen').addEventListener('change', () => storeValue('ranmacAutoOpen', $('autoOpen').checked ? '1' : '0'));
+$('useCodeBtn').addEventListener('click', sendToInventory);
+$('againBtn').addEventListener('click', () => startCamera($('cameraSelect').value));
+$('copyBtn').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(confirmedCode);
+    message('Code copied.');
+  } catch (_) {
+    message('Copy failed; select the visible number manually.');
+  }
+});
+$('manualBtn').addEventListener('click', async () => {
+  const value = $('manual').value.trim();
+  if (!value || busy) return message('Enter a code first.');
+  await stopScanner();
+  showManualResult(value);
+});
+$('manual').addEventListener('keydown', event => {
+  if (event.key === 'Enter') $('manualBtn').click();
 });
 $('photo').addEventListener('change', async event => {
-  const file = event.target.files[0];
+  const file = event.target.files?.[0];
   if (!file || busy) return;
   setBusy(true);
   try {
     await stopScanner();
-    detected = false;
-    pendingCode = null;
-    $('result').hidden = true;
-    scanner = makeScanner();
-    status('Reading photo…');
+    scanner = newScanner();
+    message('Reading barcode from photo…');
     const code = await scanner.scanFile(file, true);
-    await showVerifiedCode(code); // Photos also get a review step.
-  } catch (e) { status('Could not read a barcode from this image. Try a sharper photo.'); }
-  finally { $('photo').value = ''; setBusy(false); }
-});
-$('manualBtn').addEventListener('click', async () => {
-  const value = $('manual').value.trim();
-  if (!value) return status('Enter a code first.');
-  await stopScanner();
-  detected = false;
-  pendingCode = null;
-  await showVerifiedCode(value);
-});
-$('manual').addEventListener('keydown', e => {
-  if (e.key === 'Enter') $('manualBtn').click();
-});
-$('confirmBtn').addEventListener('click', finalizeCode);
-$('againBtn').addEventListener('click', async () => {
-  if (busy || navigating) return;
-  if (scanner && scanner.isScanning) {
-    try {
-      scanner.resume();
-      detected = false;
-      pendingCode = null;
-      resetCandidate();
-      $('result').hidden = true;
-      status('Scanning again… keep the entire barcode in view.');
-      return;
-    } catch (_) {}
+    await stopScanner();
+    showManualResult(code);
+  } catch (error) {
+    await stopScanner();
+    message('Could not read a barcode in that photo. Try a sharper picture.');
+  } finally {
+    $('photo').value = '';
+    setBusy(false);
   }
-  await startCamera(cameraSelect.value);
-});
-$('copyBtn').addEventListener('click', async () => {
-  try {
-    await navigator.clipboard.writeText($('scannedCode').textContent);
-    status('Code copied.');
-  } catch (_) { status('Select and copy the displayed code.'); }
 });
 window.addEventListener('pagehide', () => { stopScanner(); });
 
 (async function initialize() {
+  if (!window.Html5Qrcode) return message('Scanner library failed to load. Check your connection.');
+  $('autoOpen').checked = storedValue('ranmacAutoOpen') === '1';
   try {
-    const chosen = await refreshCameras();
-    await startCamera(chosen);
-  } catch (e) {
-    status('Camera setup failed: ' + errorText(e) + '. Tap “Use selected camera” to retry.');
+    const selected = await refreshCameras();
+    await startCamera(selected);
+  } catch (error) {
+    message('Camera setup failed: ' + errorMessage(error) + '\nTap “Use camera / Restart” to retry.');
   }
 })();
 </script>
