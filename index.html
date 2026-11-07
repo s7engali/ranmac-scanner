@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Ranmac Live Scanner 2.5</title>
+  <title>Ranmac Live Scanner 2.6</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; }
@@ -64,8 +64,14 @@
       width: 100% !important;
       height: clamp(225px, 58vw, 280px) !important;
       max-height: 280px !important;
-      object-fit: contain !important;
+      /* Default: enlarge/crop portrait camera feed to fill the wide window. */
+      object-fit: cover !important;
+      object-position: center center !important;
       background: #020617;
+    }
+    #readerWrap.show-full #reader video {
+      /* Optional: view the entire portrait video with black side bars. */
+      object-fit: contain !important;
     }
     #reader canvas { max-height: 280px; }
     #status { white-space: pre-line; overflow-wrap: anywhere; line-height: 1.5; font-size: 13px; }
@@ -82,7 +88,7 @@
 <body>
 <main>
   <h1>Ranmac Live Scanner</h1>
-  <p>Version 2.5 · Compact camera preview · Fast, verified barcode and QR scanning</p>
+  <p>Version 2.6 · Fill-to-frame camera preview · Fast, verified scanning</p>
 
   <div class="panel">
     <label for="cameraSelect">Camera lens</label>
@@ -92,6 +98,13 @@
       <button type="button" id="refreshBtn" class="secondary">Refresh lenses</button>
     </div>
     <p class="small">If the preview looks ultrawide, choose a Back / Rear / Main camera. Some phones expose only one combined rear camera.</p>
+
+    <label for="viewMode">Camera preview</label>
+    <select id="viewMode">
+      <option value="fill">Fill window (zoom-to-fit, cropped edges)</option>
+      <option value="full">Show full camera image (black side bars)</option>
+    </select>
+    <p class="small">Fill window enlarges the preview to match the wide frame. It crops the edges; it does not change the camera's optical zoom. Keep the entire barcode visible.</p>
 
     <label for="scanMode">Scanning mode</label>
     <select id="scanMode">
@@ -139,7 +152,7 @@
 'use strict';
 
 // ========================================
-// RANMAC LIVE SCANNER — VERSION 2.5
+// RANMAC LIVE SCANNER — VERSION 2.6
 // ========================================
 const REQUIRED_READS = 2;
 const MIN_READ_SPACING_MS = 300;
@@ -420,6 +433,13 @@ $('refreshBtn').addEventListener('click', async () => {
   } finally { setBusy(false); }
 });
 $('scanMode').addEventListener('change', () => startCamera($('cameraSelect').value));
+$('viewMode').addEventListener('change', () => {
+  $('readerWrap').classList.toggle('show-full', $('viewMode').value === 'full');
+  storeValue('ranmacViewMode', $('viewMode').value);
+  message($('viewMode').value === 'fill'
+    ? 'Preview is enlarged to fill the scan window. Keep the complete barcode centered; edges are cropped.'
+    : 'Full camera image visible. Black side bars are normal for a portrait feed.');
+});
 $('zoom').addEventListener('change', async () => {
   if (!scanner?.isScanning) return;
   const zoom = Number($('zoom').value);
@@ -474,6 +494,8 @@ window.addEventListener('pagehide', () => { stopScanner(); });
 (async function initialize() {
   if (!window.Html5Qrcode) return message('Scanner library failed to load. Check your connection.');
   $('autoOpen').checked = storedValue('ranmacAutoOpen') === '1';
+  $('viewMode').value = storedValue('ranmacViewMode') === 'full' ? 'full' : 'fill';
+  $('readerWrap').classList.toggle('show-full', $('viewMode').value === 'full');
   try {
     const selected = await refreshCameras();
     await startCamera(selected);
