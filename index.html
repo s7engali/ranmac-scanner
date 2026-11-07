@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Ranmac Live Scanner 2.2</title>
+  <title>Ranmac Live Scanner 2.3</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; }
@@ -19,20 +19,27 @@
     button.secondary { background: #334155; color: #fff; }
     button:disabled { opacity: .55; }
     .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-    #reader { width: 100%; min-height: 180px; background: #030712; border: 1px solid #475569; border-radius: 13px; overflow: hidden; margin-top: 14px; }
+    #cameraStage { position: relative; margin-top: 14px; }
+    #reader { width: 100%; min-height: 180px; background: #030712; border: 1px solid #475569; border-radius: 13px; overflow: hidden; }
     #reader video { max-width: 100%; }
+    #aimGuide { position: absolute; pointer-events: none; left: 8%; width: 84%; top: 36%; height: 28%; border: 2px dashed rgba(255,255,255,.8); border-radius: 9px; box-shadow: 0 0 0 1px rgba(0,0,0,.18); }
     #status { line-height: 1.5; overflow-wrap: anywhere; }
     #zoomControls { margin-top: 14px; }
     #zoom { padding: 0; accent-color: #38bdf8; }
     .small { font-size: 13px; color: #cbd5e1; }
-    .code { font: 700 18px ui-monospace, monospace; overflow-wrap: anywhere; margin: 9px 0; }
+    .code { font: 700 19px ui-monospace, Consolas, monospace; overflow-wrap: anywhere; margin: 9px 0; }
+    .checkRow { display: flex; align-items: flex-start; gap: 9px; font-size: 14px; line-height: 1.5; }
+    .checkRow input { width: 20px; height: 20px; flex: 0 0 auto; margin: 1px 0 0; accent-color: #38bdf8; }
+    .checkRow label { margin: 0; font-weight: 500; }
+    .resultPanel { border: 1px solid #38bdf8; }
+    .hint { padding: 8px 10px; border-radius: 9px; background: #0f172a; font-size: 13px; color: #dbeafe; }
     [hidden] { display: none !important; }
   </style>
 </head>
 <body>
 <main>
   <h1>Ranmac Live Scanner</h1>
-  <p>Version 2.2 · Choose the clearest rear camera. Simply point it at a barcode or QR code to scan automatically.</p>
+  <p>Version 2.3 · Steady-scan verification. Keep the <strong>entire</strong> barcode visible, including space on both ends.</p>
 
   <div class="panel">
     <label for="cameraSelect">Camera lens</label>
@@ -43,38 +50,54 @@
       <button id="startBtn" type="button">Use selected camera</button>
       <button id="refreshBtn" class="secondary" type="button">Refresh cameras</button>
     </div>
-    <p class="small">If the view looks ultrawide, try a different Back/Rear/Main camera. Some Android browsers expose only one combined rear camera.</p>
+    <p class="small">If the camera looks ultrawide, select a Back/Rear/Main camera. The browser may not list every physical lens.</p>
   </div>
 
-  <div id="reader"></div>
-  <div class="panel" id="status" role="status">Checking available cameras…</div>
+  <div id="cameraStage">
+    <div id="reader"></div>
+    <div id="aimGuide" aria-hidden="true"></div>
+  </div>
+  <p class="small">The dashed box is an aiming guide, not a crop. Keep the whole barcode inside it; for QR codes, keep the complete square in view.</p>
+  <div class="panel" id="status" role="status" aria-live="polite">Checking available cameras…</div>
 
   <div class="panel" id="zoomControls" hidden>
     <label for="zoom">Camera zoom: <span id="zoomValue">1×</span></label>
     <input type="range" id="zoom" min="1" max="3" step="0.1" value="1">
-    <p class="small">Use a little zoom only if the picture stays sharp.</p>
+    <p class="small">Increase zoom only if the bars remain sharp.</p>
   </div>
 
-  <div class="panel" id="result" hidden>
-    <strong>Scanned code</strong>
+  <div class="panel">
+    <div class="checkRow">
+      <input id="autoReturn" type="checkbox">
+      <label for="autoReturn">Auto-open inventory after stable detection <span class="small">(off by default; review the scanned code first for accuracy)</span></label>
+    </div>
+  </div>
+
+  <div class="panel resultPanel" id="result" hidden>
+    <strong>Barcode recognized — verify the entire code</strong>
     <div class="code" id="scannedCode"></div>
-    <button class="secondary" id="copyBtn" type="button">Copy code</button>
+    <p class="small">Make sure this matches the printed code on the package before continuing.</p>
+    <button id="confirmBtn" type="button">Use this code</button>
+    <div class="buttons">
+      <button class="secondary" id="againBtn" type="button">Scan again</button>
+      <button class="secondary" id="copyBtn" type="button">Copy code</button>
+    </div>
   </div>
 
   <div class="panel">
     <strong>Backup methods</strong>
-    <p>For small barcodes: keep the entire symbol visible, avoid reflections, and move the phone until the bars look sharp.</p>
+    <p>For long motorcycle-part barcodes, move the phone farther back until both ends are visible, then adjust focus.</p>
     <label for="photo">Read a barcode photo</label>
     <input id="photo" type="file" accept="image/*" capture="environment">
     <label for="manual">Or enter a barcode / part number</label>
     <input id="manual" type="text" placeholder="91009-KVY-961" autocomplete="off">
     <button id="manualBtn" class="secondary" type="button" style="margin-top:10px">Use this code</button>
   </div>
-  <p class="small">Scanning is read-only. Open this page using Ranmac Inventory's “Open live scanner” link to return automatically to the inventory search.</p>
+  <p class="small">Read-only scanner. Open from Ranmac Inventory to return to product search. Stable scanning reduces premature detections, but cannot guarantee the entire printed symbol was read.</p>
 </main>
 <script>
 'use strict';
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 const cameraSelect = $('cameraSelect');
 const statusEl = $('status');
 let scanner = null;
@@ -82,9 +105,16 @@ let busy = false;
 let detected = false;
 let activeCameraId = null;
 let knownCameras = [];
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+let candidate = null;
+let pendingCode = null;
+let navigating = false;
+let session = 0;
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Accept only the Ranmac Google Apps Script web-app return address.
+// Require several matching results *over time* so one lucky/partial frame
+// does not immediately navigate away. These are not barcode integrity checks.
+const VERIFY = { matches: 4, minMs: 1200, maxGapMs: 900 };
+
 let returnUrl = null;
 try {
   const raw = new URLSearchParams(location.search).get('return');
@@ -106,6 +136,7 @@ function setBusy(value) {
   $('refreshBtn').disabled = value;
   cameraSelect.disabled = value;
 }
+function resetCandidate() { candidate = null; }
 
 function scoreCamera(camera) {
   const s = (camera.label || '').toLowerCase();
@@ -117,30 +148,26 @@ function scoreCamera(camera) {
   if (/front|user|selfie/.test(s)) score -= 60;
   return score;
 }
-
 function choosePreferredCamera() {
-  const saved = localStorage.getItem('ranmacCameraId');
+  let saved = null;
+  try { saved = localStorage.getItem('ranmacCameraId'); } catch (_) {}
   if (saved && knownCameras.some(c => c.id === saved)) return saved;
   if (!knownCameras.length) return 'auto';
   const ranked = knownCameras.slice().sort((a, b) => scoreCamera(b) - scoreCamera(a));
   return scoreCamera(ranked[0]) > 0 ? ranked[0].id : 'auto';
 }
-
 async function refreshCameras() {
   if (!window.Html5Qrcode) throw new Error('Scanner library did not load. Check your connection.');
   knownCameras = await Html5Qrcode.getCameras();
   const previous = cameraSelect.value;
   cameraSelect.replaceChildren();
   cameraSelect.add(new Option('Automatic rear camera', 'auto'));
-  knownCameras.forEach((camera, index) => {
-    cameraSelect.add(new Option(camera.label || `Camera ${index + 1}`, camera.id));
-  });
-  const chosen = knownCameras.some(c => c.id === previous)
+  knownCameras.forEach((camera, index) =>
+    cameraSelect.add(new Option(camera.label || `Camera ${index + 1}`, camera.id)));
+  cameraSelect.value = knownCameras.some(c => c.id === previous)
     ? previous : choosePreferredCamera();
-  cameraSelect.value = chosen;
-  return chosen;
+  return cameraSelect.value;
 }
-
 function makeScanner() {
   if (!window.Html5Qrcode) throw new Error('Barcode library not available.');
   const F = Html5QrcodeSupportedFormats;
@@ -153,8 +180,8 @@ function makeScanner() {
     verbose: false
   });
 }
-
 async function stopScanner() {
+  session++;
   const old = scanner;
   scanner = null;
   $('zoomControls').hidden = true;
@@ -163,21 +190,63 @@ async function stopScanner() {
   try { old.clear(); } catch (_) {}
 }
 
-async function acceptCode(value) {
+// Called on every successful live camera decode (not on photo/manual entry).
+function onLiveDecode(value) {
+  if (detected || busy || navigating) return;
+  const code = String(value == null ? '' : value).trim();
+  if (!code) return;
+  const now = performance.now();
+  if (!candidate || candidate.code !== code || now - candidate.last > VERIFY.maxGapMs) {
+    candidate = { code, first: now, last: now, count: 1 };
+  } else {
+    candidate.count++;
+    candidate.last = now;
+  }
+  const elapsed = now - candidate.first;
+  if (candidate.count >= VERIFY.matches && elapsed >= VERIFY.minMs) {
+    showVerifiedCode(code);
+  } else {
+    status(`Reading ${code} — ${candidate.count} matching reads. Hold the WHOLE barcode steady for verification…`);
+  }
+}
+function onLiveMiss() {
+  if (candidate && performance.now() - candidate.last > VERIFY.maxGapMs) {
+    resetCandidate();
+    if (!detected && !busy) status('Scanning… center the entire barcode inside the guide, with both ends visible.');
+  }
+}
+
+async function showVerifiedCode(value) {
   const code = String(value == null ? '' : value).trim();
   if (!code || detected) return;
   detected = true;
+  pendingCode = code;
+  resetCandidate();
   $('scannedCode').textContent = code;
   $('result').hidden = false;
-  status('Detected: ' + code);
+  status('Stable code recognized: ' + code + '. Verify the printed barcode.');
   if (navigator.vibrate) navigator.vibrate(90);
+  try { if (scanner && scanner.isScanning) scanner.pause(true); } catch (_) {}
+  if ($('autoReturn').checked) await finalizeCode();
+}
+
+async function finalizeCode() {
+  if (!pendingCode || navigating) return;
+  navigating = true;
+  $('confirmBtn').disabled = true;
+  $('againBtn').disabled = true;
+  const code = pendingCode;
+  status('Using code: ' + code);
   await stopScanner();
   if (returnUrl) {
     returnUrl.searchParams.set('scan', code);
-    status('Code detected. Returning to Ranmac Inventory…');
+    status('Opening Ranmac Inventory…');
     location.assign(returnUrl.toString());
   } else {
-    status('Code detected: ' + code + '. Open the scanner through Ranmac Inventory to search automatically.');
+    status('Code confirmed: ' + code + '. Open the scanner from Ranmac Inventory to search there.');
+    navigating = false;
+    $('againBtn').disabled = false;
+    $('confirmBtn').disabled = false;
   }
 }
 
@@ -198,35 +267,41 @@ function enableZoom() {
     $('zoomControls').hidden = false;
   } catch (_) {}
 }
-
 async function startCamera(cameraId, allowRestore = true) {
   if (busy) return;
   setBusy(true);
   detected = false;
+  pendingCode = null;
+  resetCandidate();
+  navigating = false;
   $('result').hidden = true;
+  $('confirmBtn').disabled = false;
+  $('againBtn').disabled = false;
   const previous = activeCameraId;
-  status('Switching camera…');
+  status('Starting camera…');
   try {
     if (!isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error('This scanner requires HTTPS and a browser with camera access.');
     }
     await stopScanner();
-    await delay(350); // Give Android time to release the previous lens.
+    await delay(350);
     const selected = cameraId && cameraId !== 'auto' ? cameraId : null;
     const source = selected || { facingMode: 'environment' };
-    let started = false;
-    let lastError;
-    // Prefer higher video resolution, but retry with browser defaults if unavailable.
     const highRes = selected
       ? { deviceId: { exact: selected }, width: { ideal: 1920 }, height: { ideal: 1080 } }
       : { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } };
+    let started = false;
+    let lastError;
     for (const options of [
       { fps: 12, disableFlip: false, videoConstraints: highRes },
       { fps: 10, disableFlip: false }
     ]) {
       try {
         scanner = makeScanner();
-        await scanner.start(source, options, acceptCode, () => {});
+        const currentSession = session;
+        await scanner.start(source, options,
+          code => { if (currentSession === session) onLiveDecode(code); },
+          () => { if (currentSession === session) onLiveMiss(); });
         started = true;
         break;
       } catch (e) {
@@ -237,15 +312,15 @@ async function startCamera(cameraId, allowRestore = true) {
     }
     if (!started) throw lastError || new Error('Unable to open selected lens.');
     activeCameraId = selected || null;
-    if (selected) localStorage.setItem('ranmacCameraId', selected);
-    else localStorage.removeItem('ranmacCameraId');
+    try {
+      if (selected) localStorage.setItem('ranmacCameraId', selected);
+      else localStorage.removeItem('ranmacCameraId');
+    } catch (_) {}
     const label = knownCameras.find(c => c.id === selected)?.label || 'Automatic rear camera';
-    status('Camera active: ' + label + '. Hold the barcode steady and keep its bars sharp. Scanning automatically…');
+    status('Camera active: ' + label + '. Hold the FULL barcode steady; multiple matching reads required.');
     enableZoom();
   } catch (e) {
-    const message = errorText(e);
-    status('Could not open selected camera: ' + message);
-    // Attempt to restore the last working camera, once only.
+    status('Could not open selected camera: ' + errorText(e));
     if (allowRestore && previous !== cameraId) {
       await stopScanner();
       setBusy(false);
@@ -277,30 +352,54 @@ $('zoom').addEventListener('input', async () => {
   try { await scanner.applyVideoConstraints({ advanced: [{ zoom }] }); }
   catch (e) { status('Zoom not supported on this camera: ' + errorText(e)); }
 });
-$('photo').addEventListener('change', async (event) => {
+$('photo').addEventListener('change', async event => {
   const file = event.target.files[0];
   if (!file || busy) return;
   setBusy(true);
   try {
     await stopScanner();
+    detected = false;
+    pendingCode = null;
+    $('result').hidden = true;
     scanner = makeScanner();
     status('Reading photo…');
     const code = await scanner.scanFile(file, true);
-    await acceptCode(code);
+    await showVerifiedCode(code); // Photos also get a review step.
   } catch (e) { status('Could not read a barcode from this image. Try a sharper photo.'); }
   finally { $('photo').value = ''; setBusy(false); }
 });
-$('manualBtn').addEventListener('click', () => {
+$('manualBtn').addEventListener('click', async () => {
   const value = $('manual').value.trim();
   if (!value) return status('Enter a code first.');
-  acceptCode(value);
+  await stopScanner();
+  detected = false;
+  pendingCode = null;
+  await showVerifiedCode(value);
 });
 $('manual').addEventListener('keydown', e => {
   if (e.key === 'Enter') $('manualBtn').click();
 });
+$('confirmBtn').addEventListener('click', finalizeCode);
+$('againBtn').addEventListener('click', async () => {
+  if (busy || navigating) return;
+  if (scanner && scanner.isScanning) {
+    try {
+      scanner.resume();
+      detected = false;
+      pendingCode = null;
+      resetCandidate();
+      $('result').hidden = true;
+      status('Scanning again… keep the entire barcode in view.');
+      return;
+    } catch (_) {}
+  }
+  await startCamera(cameraSelect.value);
+});
 $('copyBtn').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText($('scannedCode').textContent); status('Code copied.'); }
-  catch (_) { status('Select and copy the displayed code.'); }
+  try {
+    await navigator.clipboard.writeText($('scannedCode').textContent);
+    status('Code copied.');
+  } catch (_) { status('Select and copy the displayed code.'); }
 });
 window.addEventListener('pagehide', () => { stopScanner(); });
 
