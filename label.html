@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f7f9f7">
-<title>Ranmac · Read Label 3.2.1</title>
+<title>Ranmac · Read Label 3.3</title>
 <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script defer src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
@@ -44,7 +44,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;p
 </head>
 <body>
 <main>
- <header><div><div class="head-title">Read product label</div><p class="subtitle">Ranmac · New product registration</p></div><span class="version">VERSION 3.2.1</span></header>
+ <header><div><div class="head-title">Read product label</div><p class="subtitle">Ranmac · New product registration</p></div><span class="version">VERSION 3.3</span></header>
  <section class="card">
    <div class="bar"><span class="label">Capture packaging</span><span class="hint">Recognize locally on your phone</span></div>
    <div class="mode"><button class="active" id="liveTab" type="button">Live camera</button><button id="photoTab" type="button">Take photo</button></div>
@@ -65,7 +65,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;p
     <div class="grid">
       <div class="field full"><label for="partNumber">Part number</label><input type="text" id="partNumber" maxlength="80" placeholder="e.g. 91009-KVY-961" autocapitalize="characters" autocomplete="off"></div>
       <div class="field full"><label for="description">Description</label><input type="text" id="description" maxlength="300" placeholder="e.g. GASKET, WATER PUMP COVER"></div>
-      <div class="field"><label for="brand">Brand</label><input type="text" id="brand" maxlength="80" placeholder="e.g. HONDA"></div>
+      <div class="field"><label for="brand">Brand</label><input type="text" id="brand" maxlength="80" placeholder="e.g. HONDA"></div><div class="field"><label for="brandHint">Observed brand text (optional)</label><input type="text" id="brandHint" maxlength="80" placeholder="Original text if OCR misread it"></div>
       <div class="field"><label for="category">Category</label><input type="text" id="category" maxlength="80" placeholder="e.g. Gasket"></div>
       <div class="field full"><label for="barcode">Barcode value (only if decoded)</label><input type="text" id="barcode" maxlength="90" placeholder="Optional; can differ from printed part number"></div>
     </div>
@@ -90,12 +90,21 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;p
 'use strict';
 const $=id=>document.getElementById(id);
 const q=new URLSearchParams(location.search);
+const fromInventoryBarcode=String(q.get('barcode')||'').slice(0,90);
 let returnUrl=null;
 try{const u=new URL(q.get('return'));if(u.protocol==='https:'&&u.hostname==='script.google.com'&&/^\/macros\/s\/[^/]+\/(exec|dev)$/.test(u.pathname))returnUrl=u;}catch(e){}
 const status=(text,warn=false,area='live')=>{const root=area==='live'?'status':'photoStatus';$(root).classList.toggle('warn',warn);$(area==='live'?'statusText':'photoStatusText').textContent=text;};
 let stream=null,readerWorker=null,ocrBusy=false,ocrPromise=null,loopTimer=null,liveMode=true,photoFile=null,previewBlob=null;
 let cameraEntries=[],cameraBusy=false,requestedCameraId='',cameraFocusMode='';
 const CAM_STORAGE_KEY='ranmac_label_camera_preference';
+let learnedBrandRules=[];
+try {
+  const data=JSON.parse(q.get('brandRules')||'[]');
+  if(Array.isArray(data))learnedBrandRules=data.slice(0,70).filter(pair=>Array.isArray(pair)&&pair.length===2&&
+    typeof pair[0]==='string'&&typeof pair[1]==='string'&&pair[0].length<=80&&pair[1].length<=80)
+    .map(pair=>({alias:pair[0].toUpperCase(),brand:pair[1].toUpperCase()}));
+}catch(e){}
+
 function getSavedCamera(){try{return localStorage.getItem(CAM_STORAGE_KEY)||'';}catch(e){return '';}}
 function saveCamera(label){try{if(label)localStorage.setItem(CAM_STORAGE_KEY,label);}catch(e){}}
 let lastPart='',sameCount=0,running=false,latestRaw='',bestScore=-1;
@@ -103,8 +112,15 @@ const clean=s=>String(s||'').normalize('NFKC').replace(/[‐‑‒–—−]/g,'
 function recognizeFields(text){
  const raw=clean(text),lines=raw.toUpperCase().split(/\r?\n/).map(s=>s.trim().replace(/\s+/g,' ')).filter(Boolean);
  const full=lines.join('\n');
- const knownBrands=['HONDA','YAMAHA','SUZUKI','KAWASAKI','KYMCO','RUSI','SYM','TVS','BAJAJ'];
- let brand=knownBrands.find(x=>new RegExp('\\b'+x+'\\b').test(full))||'';
+ const knownBrands=['HONDA','YAMAHA','SUZUKI','KAWASAKI','KYMCO','RUSI','SYM','TVS','BAJAJ','NGK','BOSCH'];
+ const aliases=[...learnedBrandRules,...knownBrands.map(b=>({alias:b,brand:b}))];
+ let brand='',brandHint='';
+ for(const entry of aliases){
+   const label=entry.alias.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+   if(new RegExp('(?:^|[^A-Z0-9])'+label+'(?:$|[^A-Z0-9])').test(full)){
+     brand=entry.brand;brandHint=entry.alias;break;
+   }
+ }
  let number='',numberScore=-1;
  // Prioritize consistent 5-3-3 OEM numbers, even when OCR inserts spaces near hyphens.
  const re=/\b([0-9OILSB]{5})\s*[- ]\s*([A-Z0-9]{3,5})\s*[- ]\s*([A-Z0-9]{3,5})\b/g;
@@ -125,7 +141,7 @@ function recognizeFields(text){
    const score=10+Math.min(stripped.length,60)/10 - (number&&stripped.includes(number)?7:0);
    if(score>descScore){description=stripped;category=found[1];descScore=score;}
  }
- return {partNumber:number,description,brand,category,score:Math.max(0,numberScore)+Math.max(0,descScore)};
+ return {partNumber:number,description,brand,brandHint,category,score:Math.max(0,numberScore)+Math.max(0,descScore)};
 }
 function updateDraft(text,fromLive){
  const raw=clean(text),f=recognizeFields(raw);
@@ -137,7 +153,7 @@ function updateDraft(text,fromLive){
  // Only improve/replace an OCR suggestion if the new recognition appears clearer.
  if(f.score>=bestScore){
    bestScore=f.score;
-   for(const key of ['partNumber','description','brand','category']){
+   for(const key of ['partNumber','description','brand','brandHint','category']){
      const el=$(key);
      if(f[key] && (!el.dataset.userEdited || !el.value.trim()))el.value=f[key];
    }
@@ -390,7 +406,7 @@ async function decodeBarcode(file){
  catch(err){status('Barcode not detected. A sharp close-up may work better.',true);}
  finally{try{decoder?.clear();}catch(e){}}
 }
-['partNumber','description','brand','category','barcode'].forEach(id=>$(id).addEventListener('input',()=>{$(id).dataset.userEdited='1';}));
+['partNumber','description','brand','brandHint','category','barcode'].forEach(id=>$(id).addEventListener('input',()=>{$(id).dataset.userEdited='1';}));
 function webUrl(){const part=$('partNumber').value.trim(),brand=$('brand').value.trim();return 'https://www.google.com/search?q='+encodeURIComponent([brand,part,'motorcycle spare part'].filter(Boolean).join(' '));}
 $('webSearch').addEventListener('click',()=>{if(!$('partNumber').value.trim()){status('Enter a part number to search.',true);return;}window.open(webUrl(),'_blank','noopener,noreferrer');});
 let autoLookup=false;
@@ -403,11 +419,12 @@ function continueToInventory(){
  stopCamera();
  const out=new URL(returnUrl);
  out.searchParams.set('ocr','1');if(autoLookup)out.searchParams.set('webLookup','1');
- for(const k of ['partNumber','barcode','description','brand','category']){const value=$(k).value.trim();if(value)out.searchParams.set(k,value.slice(0,k==='description'?300:120));}
+ for(const k of ['partNumber','barcode','description','brand','brandHint','category']){const value=$(k).value.trim();if(value)out.searchParams.set(k,value.slice(0,k==='description'?300:120));}
  location.assign(out.toString());
 }
 window.addEventListener('pagehide',()=>{stopCamera();if(readerWorker){try{readerWorker.terminate();}catch(e){}}const u=$('imgPreview').dataset.url;if(u)URL.revokeObjectURL(u);});
 window.addEventListener('load',()=>{startCamera();});
+if(fromInventoryBarcode){$('barcode').value=fromInventoryBarcode;status('Barcode received from inventory. Read the label to fill missing details.');}
 </script>
 </body>
 </html>
