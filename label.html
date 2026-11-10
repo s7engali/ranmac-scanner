@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f7f9f7">
-<title>Ranmac · Read Label 3.2</title>
+<title>Ranmac · Read Label 3.2.1</title>
 <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script defer src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
@@ -37,23 +37,25 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}
 details{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}summary{cursor:pointer;font-size:12px;font-weight:700;color:#5b7363}details p{font-size:11px;color:#697d6f;line-height:1.5}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;padding:12px;background:#f2f5f2;border-radius:10px;font-size:10px;line-height:1.6}
 .hidden{display:none!important}#decoder{width:200px;height:100px;position:absolute;left:-10000px;top:0}
-#cameraOptions{margin-top:8px}#zoomBox{margin-top:12px}#zoomBox input{width:100%;accent-color:#406b50}#captureBox{margin-top:10px}
+#lensPanel{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:11px;align-items:end}#lensPanel label{display:block;font-size:11px;color:var(--muted);font-weight:750;margin-bottom:5px}#lensPanel select{min-width:0}#lensPanel button{white-space:nowrap}#cameraInfo{margin-top:7px;overflow-wrap:anywhere}#cameraOptions{margin-top:8px}#zoomBox{margin-top:12px}#zoomBox input{width:100%;accent-color:#406b50}#captureBox{margin-top:10px}
 #imgPreview{width:100%;max-height:260px;object-fit:contain;border-radius:11px;background:#f0f3f0;display:none}
 @media(max-width:365px){.grid{grid-template-columns:1fr}.card{padding:12px}.head-title{font-size:19px}.viewport{height:190px}}
 </style>
 </head>
 <body>
 <main>
- <header><div><div class="head-title">Read product label</div><p class="subtitle">Ranmac · New product registration</p></div><span class="version">VERSION 3.2</span></header>
+ <header><div><div class="head-title">Read product label</div><p class="subtitle">Ranmac · New product registration</p></div><span class="version">VERSION 3.2.1</span></header>
  <section class="card">
    <div class="bar"><span class="label">Capture packaging</span><span class="hint">Recognize locally on your phone</span></div>
    <div class="mode"><button class="active" id="liveTab" type="button">Live camera</button><button id="photoTab" type="button">Take photo</button></div>
    <div id="livePane">
+     <div id="lensPanel"><div><label for="cameraSelect">Camera lens</label><select id="cameraSelect"><option value="">Automatic rear camera</option></select></div><button type="button" class="secondary" id="nextLens">Next lens</button></div>
+     <p id="cameraInfo" class="hint">For sharp text, try Main / 1× / Back camera. Avoid ultrawide or macro lenses.</p>
      <div class="viewport"><video id="video" autoplay muted playsinline></video><img id="frozen" class="freeze" alt="Captured label"><div class="guides"></div></div>
      <div id="status" role="status" class="status"><span class="status-dot"></span><span id="statusText">Ready to start camera.</span></div>
      <div id="candidate" class="hidden" aria-live="polite"></div>
      <div class="actions"><button class="primary" id="startCamera">Start / Restart</button><button class="secondary" id="capture">Capture &amp; read</button><button class="outline wide" id="reviewLive" disabled>Review detected details ↓</button></div>
-     <details id="cameraOptions"><summary>Camera options</summary><label class="hint" for="cameraSelect">Camera lens</label><select id="cameraSelect"><option value="">Automatic rear camera</option></select><div id="zoomBox" class="hidden"><p class="hint">Camera zoom <b id="zoomValue">1.0×</b></p><input type="range" id="zoom" min="1" max="4" step="0.1" value="1"></div><label class="check"><input type="checkbox" id="autoRead" checked><span>Read automatically while hovering (about one read every 3 seconds). May use more battery.</span></label></details>
+     <details id="cameraOptions"><summary>Focus, zoom &amp; reading settings</summary><p class="hint">The browser may group multiple rear lenses together. Switch lenses and check which gives sharp text.</p><button type="button" class="outline hidden" id="refocus" style="width:100%;margin-top:9px">Refocus camera</button><div id="zoomBox" class="hidden"><p class="hint">Camera zoom <b id="zoomValue">1.0×</b></p><input type="range" id="zoom" min="1" max="4" step="0.1" value="1"></div><label class="check"><input type="checkbox" id="autoRead" checked><span>Read automatically while hovering (about one read every 3 seconds). May use more battery.</span></label></details>
    </div>
    <div id="photoPane" class="hidden"><p class="desc">For glossy labels, a sharp still photo often reads more accurately than live camera.</p><input type="file" id="photo" accept="image/*" capture="environment"><img id="imgPreview" alt="Selected label photo"><button class="primary" id="readPhoto" type="button" style="width:100%;margin-top:10px" disabled>Read photo</button><div id="photoStatus" class="status"><span class="status-dot"></span><span id="photoStatusText">Choose a label photo.</span></div></div>
  </section>
@@ -92,6 +94,10 @@ let returnUrl=null;
 try{const u=new URL(q.get('return'));if(u.protocol==='https:'&&u.hostname==='script.google.com'&&/^\/macros\/s\/[^/]+\/(exec|dev)$/.test(u.pathname))returnUrl=u;}catch(e){}
 const status=(text,warn=false,area='live')=>{const root=area==='live'?'status':'photoStatus';$(root).classList.toggle('warn',warn);$(area==='live'?'statusText':'photoStatusText').textContent=text;};
 let stream=null,readerWorker=null,ocrBusy=false,ocrPromise=null,loopTimer=null,liveMode=true,photoFile=null,previewBlob=null;
+let cameraEntries=[],cameraBusy=false,requestedCameraId='',cameraFocusMode='';
+const CAM_STORAGE_KEY='ranmac_label_camera_preference';
+function getSavedCamera(){try{return localStorage.getItem(CAM_STORAGE_KEY)||'';}catch(e){return '';}}
+function saveCamera(label){try{if(label)localStorage.setItem(CAM_STORAGE_KEY,label);}catch(e){}}
 let lastPart='',sameCount=0,running=false,latestRaw='',bestScore=-1;
 const clean=s=>String(s||'').normalize('NFKC').replace(/[‐‑‒–—−]/g,'-').replace(/\u00a0/g,' ');
 function recognizeFields(text){
@@ -177,7 +183,7 @@ function videoCoverCanvas(){
  let sx=0,sy=0,sw=video.videoWidth,sh=video.videoHeight;
  if(sourceAspect>viewAspect){sw=video.videoHeight*viewAspect;sx=(video.videoWidth-sw)/2;}
  else{sh=video.videoWidth/viewAspect;sy=(video.videoHeight-sh)/2;}
- const max=1600,scale=Math.min(1,max/Math.max(sw,sh));
+ const max=2000,scale=Math.min(1,max/Math.max(sw,sh));
  const c=document.createElement('canvas');c.width=Math.max(1,Math.round(sw*scale));c.height=Math.max(1,Math.round(sh*scale));
  c.getContext('2d',{willReadFrequently:true}).drawImage(video,sx,sy,sw,sh,0,0,c.width,c.height);
  return c;
@@ -189,33 +195,121 @@ async function liveTick(){
  try{const c=videoCoverCanvas();await runOcr(c,true);}catch(err){status(err.message||String(err),true);}
  nextLive(2600);
 }
+function lensScore(label){
+ const x=String(label||'').toLowerCase();let n=0;
+ if(/back|rear|environment/.test(x))n+=100;
+ if(/main|primary|wide \(1|1x|1×/.test(x))n+=100;
+ if(/camera 0|camera0/.test(x)&&/back|rear/.test(x))n+=30;
+ if(/ultra|0\.5|0,5|macro|depth/.test(x))n-=140;
+ if(/front|selfie|user facing/.test(x))n-=200;
+ return n;
+}
 async function enumerateCameras(){
  try{
-   const devices=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==='videoinput');
-   const sel=$('cameraSelect'),old=sel.value;
-   sel.innerHTML='<option value="">Automatic rear camera</option>';
-   for(const d of devices){const option=document.createElement('option');option.value=d.deviceId;option.textContent=d.label||'Camera '+(sel.options.length);sel.appendChild(option);}
-   if([...sel.options].some(x=>x.value===old))sel.value=old;
- }catch(e){}
+   const devices=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==='videoinput'&&x.deviceId);
+   cameraEntries=devices.map((d,i)=>({id:d.deviceId,label:d.label||'Camera '+(i+1)}));
+   // Keep the camera currently in use selected, even if device enumeration is refreshed.
+   const current=stream?.getVideoTracks()[0]?.getSettings?.().deviceId||requestedCameraId;
+   const select=$('cameraSelect');
+   select.replaceChildren();
+   select.add(new Option('Automatic rear camera',''));
+   cameraEntries.forEach(d=>select.add(new Option(d.label,d.id)));
+   if(current&&cameraEntries.some(d=>d.id===current))select.value=current;
+   else select.value='';
+   return cameraEntries;
+ }catch(e){return cameraEntries;}
+}
+function preferredRearCamera(devices){
+ if(!devices.length)return null;
+ const saved=getSavedCamera();
+ // Labels are more persistent across permission changes than device IDs.
+ const savedMatch=saved&&devices.find(d=>d.label===saved&&!/front|selfie/i.test(d.label));
+ if(savedMatch)return savedMatch;
+ return [...devices].sort((a,b)=>lensScore(b.label)-lensScore(a.label))[0];
 }
 async function stopCamera(){
  running=false;clearTimeout(loopTimer);loopTimer=null;
  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
  $('video').srcObject=null;
 }
-async function startCamera(){
+async function attachCamera(constraints){
+ stream=await navigator.mediaDevices.getUserMedia({audio:false,video:constraints});
+ $('video').srcObject=stream;
+ await $('video').play();
+ // Wait for metadata; OCR and preview need real video dimensions.
+ if(!$('video').videoWidth){await new Promise(resolve=>{
+   const vid=$('video');const done=()=>{vid.removeEventListener('loadedmetadata',done);resolve();};
+   vid.addEventListener('loadedmetadata',done,{once:true});
+   if(vid.readyState>=1)done();
+ });}
+}
+async function startCamera(deviceId){
+ if(cameraBusy)return;
+ cameraBusy=true;
+ $('startCamera').disabled=true;$('nextLens').disabled=true;$('cameraSelect').disabled=true;
  await stopCamera();$('frozen').classList.remove('active');
- if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){status('Live camera requires HTTPS and a supported browser.',true);return;}
- const device=$('cameraSelect').value;
+ if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){
+   status('Live camera requires HTTPS and a supported browser.',true);
+   cameraBusy=false;$('startCamera').disabled=false;$('nextLens').disabled=false;$('cameraSelect').disabled=false;return;
+ }
+ const requested=deviceId!==undefined?deviceId:$('cameraSelect').value;
+ requestedCameraId=requested||'';
  status('Starting camera…');
  try{
-   const video=device?{deviceId:{exact:device},width:{ideal:1920},height:{ideal:1080}}:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}};
-   stream=await navigator.mediaDevices.getUserMedia({audio:false,video});
-   $('video').srcObject=stream;await $('video').play();running=true;
-   await enumerateCameras();await configureZoom();
-   status('Camera active. Hold the full label steady inside the frame; recognition runs automatically.');
+   const opts={width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:24}};
+   await attachCamera(requested?{deviceId:{exact:requested},...opts}:{facingMode:{ideal:'environment'},...opts});
+   const cameras=await enumerateCameras();
+   const preferred=preferredRearCamera(cameras);
+   const currentId=stream?.getVideoTracks()[0]?.getSettings?.().deviceId||'';
+   // Only change the initial automatic lens when a clearly preferred or saved rear lens exists.
+   if(!requested&&preferred&&preferred.id!==currentId&&
+     (getSavedCamera()===preferred.label||lensScore(preferred.label)>=140)){
+     try{
+       await stopCamera();
+       await attachCamera({deviceId:{exact:preferred.id},...opts});
+       requestedCameraId=preferred.id;
+     }catch(error){
+       await stopCamera();
+       await attachCamera({facingMode:{ideal:'environment'},...opts});
+       requestedCameraId='';
+     }
+   }
+   running=true;
+   await enumerateCameras();
+   const track=stream.getVideoTracks()[0];
+   const actual=track.getSettings?.()||{};
+   const current=cameraEntries.find(x=>x.id===actual.deviceId);
+   if(current){$('cameraSelect').value=current.id;requestedCameraId=current.id;}
+   await configureFocus();
+   await configureZoom();
+   const label=current?.label||track.label||'Rear camera';
+   $('cameraInfo').textContent='Using: '+label+(
+      actual.width&&actual.height?' · '+actual.width+'×'+actual.height:'')+
+      '. If blurry, tap Next lens; move the phone until text is sharp.';
+   status('Camera ready. Center the printed part number, let it focus, then hold steady.');
    nextLive(1000);
- }catch(err){status('Camera unavailable: '+(err.message||String(err))+'. Try another lens or Android Chrome.',true);await stopCamera();}
+ }catch(err){
+   status('Camera unavailable: '+(err.message||String(err))+'. Try another lens or Android Chrome.',true);
+   await stopCamera();
+ }finally{
+   cameraBusy=false;$('startCamera').disabled=false;$('nextLens').disabled=false;$('cameraSelect').disabled=false;
+ }
+}
+async function configureFocus(){
+ cameraFocusMode='';$('refocus').classList.add('hidden');
+ const track=stream?.getVideoTracks()[0];
+ if(!track?.getCapabilities)return;
+ try{
+   const modes=track.getCapabilities()?.focusMode||[];
+   const supported=Array.isArray(modes)?modes:[];
+   if(supported.includes('continuous')){
+     await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+     cameraFocusMode='continuous';
+   }else if(supported.includes('single-shot')){
+     cameraFocusMode='single-shot';
+   }
+   if(cameraFocusMode)$('refocus').classList.remove('hidden');
+ }catch(e){/* Some browsers expose focus capability but reject the constraint. */}
 }
 async function configureZoom(){
  $('zoomBox').classList.add('hidden');
@@ -230,7 +324,32 @@ async function configureZoom(){
  }catch(e){}
 }
 $('zoom').addEventListener('change',async()=>{const track=stream?.getVideoTracks()[0];if(!track)return;try{await track.applyConstraints({advanced:[{zoom:Number($('zoom').value)}]});$('zoomValue').textContent=Number($('zoom').value).toFixed(1)+'×';}catch(e){status('Zoom is not supported by this camera.',true);}});
-$('cameraSelect').addEventListener('change',()=>{if(liveMode)startCamera();});
+$('cameraSelect').addEventListener('change',()=>{
+ const id=$('cameraSelect').value;
+ const match=cameraEntries.find(d=>d.id===id);
+ if(match)saveCamera(match.label);
+ if(liveMode)startCamera(id);
+});
+$('nextLens').addEventListener('click',()=>{
+ const rear=cameraEntries.filter(d=>!/front|selfie/i.test(d.label));
+ const pool=rear.length>1?rear:cameraEntries;
+ if(pool.length<2){status('Your browser exposes only one camera. You can still use optical distance or supported zoom.',true);return;}
+ const active=stream?.getVideoTracks()[0]?.getSettings?.().deviceId||$('cameraSelect').value;
+ const index=pool.findIndex(x=>x.id===active);
+ const next=pool[(index+1)%pool.length];
+ saveCamera(next.label);
+ startCamera(next.id);
+});
+$('refocus').addEventListener('click',async()=>{
+ const track=stream?.getVideoTracks()[0];if(!track)return;
+ try{
+   const caps=track.getCapabilities?.(),modes=caps?.focusMode||[];
+   if(modes.includes('single-shot'))await track.applyConstraints({advanced:[{focusMode:'single-shot'}]});
+   else if(modes.includes('continuous'))await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+   else throw Error('Browser does not expose a focus control');
+   status('Focus requested. Keep the phone steady for a moment.');
+ }catch(e){status('This camera does not allow manual refocusing from the browser.',true);}
+});
 $('startCamera').addEventListener('click',startCamera);
 $('autoRead').addEventListener('change',()=>{if($('autoRead').checked&&running)nextLive(350);else clearTimeout(loopTimer);});
 async function captureFrame(){
