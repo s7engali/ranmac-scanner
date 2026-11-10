@@ -1,638 +1,491 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <base target="_top">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Ranmac Live Scanner 2.8</title>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <title>Ranmac Inventory 3.2</title>
   <style>
+    :root{
+      color-scheme:light; --bg:#f8f9fb; --surface:#fff; --ink:#20262e;
+      --muted:#77818f; --line:#e8ebef; --soft:#f2f4f7; --accent:#253a33;
+      --accent-deep:#1d302a; --green:#2f7957; --red:#bd584e; --amber:#916a23;
+      --shadow:0 18px 50px rgba(19,29,38,.09);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    button:disabled{cursor:not-allowed;opacity:.48}
+    button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid #9ac6b2;outline-offset:2px}
+    .app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+    .side{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);background:#fff;padding:29px 18px 22px;display:flex;flex-direction:column;gap:26px}
+    .brand{display:flex;align-items:center;gap:11px;padding:0 10px}
+    .brand-mark{width:37px;height:37px;display:grid;place-items:center;border-radius:12px;background:var(--accent);color:white;font-weight:800;font-size:20px;letter-spacing:-1px}
+    .brand h2{font-size:15px;letter-spacing:-.4px;margin:0;line-height:1.1}
+    .brand span{font-size:11px;color:var(--muted);display:block;margin-top:4px}
+    .navlabel{font-size:10px;color:#9fa6b0;text-transform:uppercase;letter-spacing:1.6px;padding:0 12px;margin:10px 0}
+    .nav{display:grid;gap:5px}.nav button{border:0;background:transparent;text-align:left;display:flex;align-items:center;gap:12px;width:100%;padding:12px 13px;border-radius:11px;font-size:13px;font-weight:560;color:#61707b}
+    .nav button.active{background:#eef4f0;color:var(--accent-deep);font-weight:710}
+    .nav button:not(.active):hover{background:#f5f7f8}
+    .nav svg{width:17px;height:17px;stroke-width:1.8;flex:none}
+    .sidebar-bottom{margin-top:auto;border-top:1px solid var(--line);padding:17px 10px 3px}
+    .test-tag{display:inline-flex;align-items:center;gap:7px;padding:6px 8px;border-radius:8px;color:#7b673b;background:#fbf6eb;font-size:10px;font-weight:750;letter-spacing:.7px}
+    .test-dot{background:#c6a458;height:6px;width:6px;border-radius:50%}
+    .sidebar-bottom p{font-size:11px;color:var(--muted);line-height:1.6;margin:11px 0 0}
+    main{min-width:0;padding:42px clamp(20px,4.4vw,72px) 70px;max-width:1530px;width:100%;margin:0 auto}
+    .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:29px}
+    .eyebrow{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:#7b8a85;font-weight:760;margin:0 0 8px}
+    h1{font-size:clamp(28px,3vw,38px);line-height:1.18;letter-spacing:-1.4px;margin:0 0 9px;font-weight:740}
+    .subtitle{font-size:13px;color:var(--muted);margin:0;line-height:1.5}
+    .head-actions{display:flex;align-items:center;gap:8px;padding-top:12px}
+    .btn{height:40px;padding:0 14px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:650;font-size:12px;white-space:nowrap;transition:filter .14s;line-height:1}
+    .btn:hover{filter:brightness(.965)}
+    .btn.primary{border:1px solid var(--accent);background:var(--accent);color:#fff}
+    .btn.secondary{background:#fff;border:1px solid #dfe4e9;color:#364049}
+    .btn.ghost{background:transparent;border:1px solid transparent;color:#5e6973}
+    .btn.small{height:32px;padding:0 10px;font-size:11px}
+    .btn svg{width:15px;height:15px;flex:none}
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:25px}
+    .metric{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 21px;min-height:116px}
+    .metric-label{font-size:11px;color:var(--muted);font-weight:530;margin:0 0 18px}
+    .metric-value{font-size:27px;letter-spacing:-.9px;font-weight:730;margin:0}
+    .metric-foot{font-size:10px;color:#a2a9b0;margin-top:5px}
+    .section{background:#fff;border:1px solid var(--line);border-radius:17px;overflow:hidden}
+    .section-head{padding:22px 23px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .section-title{font-size:15px;font-weight:710;letter-spacing:-.25px;margin:0}
+    .section-desc{font-size:11px;color:var(--muted);margin:5px 0 0}
+    .toolbar{display:flex;gap:10px;align-items:center;padding:0 23px 17px;flex-wrap:wrap}
+    .searchbox{border:1px solid var(--line);border-radius:10px;background:#fbfcfd;height:40px;display:flex;align-items:center;gap:9px;padding:0 12px;flex:1;min-width:175px}
+    .searchbox svg{width:16px;height:16px;color:#9aa4ac}
+    .searchbox input{border:0;outline:0;background:transparent;min-width:0;width:100%;font-size:12px;color:#27313a}
+    .searchbox input::placeholder{color:#9ba4af}
+    .select{height:40px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:0 12px;color:#596570;font-size:12px;max-width:165px}
+    .results-meta{font-size:11px;color:#8a949e;padding:0 24px 15px}
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;text-align:left;font-size:12px}
+    th{border-top:1px solid #f0f1f3;border-bottom:1px solid #f0f1f3;background:#fcfcfd;padding:12px 20px;font-size:10px;font-weight:670;color:#87919c;white-space:nowrap}
+    td{padding:17px 20px;border-bottom:1px solid #f0f2f3;vertical-align:middle;white-space:nowrap}
+    tbody tr:last-child td{border-bottom:0}
+    tbody tr:hover{background:#fdfefe}
+    .part{font-weight:690;font-size:12px;color:#2b353c}
+    .desc{color:#7d8892;font-size:11px;margin-top:5px;max-width:330px;overflow:hidden;text-overflow:ellipsis}
+    .weak{font-size:11px;color:#7b8893}
+    .qty{font-weight:720;font-variant-numeric:tabular-nums}
+    .chip{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:5px 8px;font-size:10px;font-weight:670;white-space:nowrap}
+    .chip:before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+    .chip.good{color:#3e8060;background:#eff7f2}.chip.low{color:#9d752c;background:#fcf7ea}.chip.out{color:#a85a57;background:#fff1f0}
+    .row-actions{display:flex;align-items:center;gap:5px}
+    .linkbtn{border:0;background:transparent;color:#436859;font-size:11px;padding:7px 8px;border-radius:7px;font-weight:680}
+    .linkbtn:hover{background:#eff5f2}
+    .mobile-products{display:none}
+    .product-card{padding:16px 17px;border-top:1px solid var(--line)}
+    .product-card-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+    .product-meta{display:flex;justify-content:space-between;align-items:center;margin:12px 0;color:#788590;font-size:11px}
+    .product-actions{display:flex;gap:8px}
+    .empty{padding:40px 20px;text-align:center;color:#76828c;font-size:12px;line-height:1.7}
+    .empty strong{display:block;color:#34424b;font-size:14px;margin-bottom:5px}
+    .activity-wrap{margin-top:20px}
+    .history-row{display:grid;grid-template-columns:160px minmax(0,1fr) 105px 76px;gap:12px;align-items:center;padding:17px 24px;border-top:1px solid var(--line);font-size:12px}
+    .history-row .secondary-text{font-size:10px;color:#89939f}
+    .history-row .movement-name{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pos-panel{padding:32px;background:white;border:1px solid var(--line);border-radius:16px}
+    .pos-panel p{max-width:600px;color:var(--muted);font-size:13px;line-height:1.7}
+    .pos-panel h2{font-size:20px;letter-spacing:-.5px}
+    .muted-badge{display:inline-flex;padding:7px 10px;border-radius:8px;background:#f0f2f5;color:#75818c;font-size:10px;font-weight:750;letter-spacing:1px}
+    .hidden{display:none !important}
+    .overlay{position:fixed;inset:0;z-index:40;background:rgba(25,35,39,.35);display:none;align-items:center;justify-content:center;padding:15px;backdrop-filter:blur(4px)}
+    .overlay.show{display:flex}
+    .modal{background:#fff;border-radius:19px;width:min(660px,100%);max-height:min(89dvh,860px);min-height:0;display:flex;flex-direction:column;box-shadow:var(--shadow);overflow:hidden}
+    .modal.product-dialog{height:min(89dvh,860px)}
+    .modal > form{display:flex;flex-direction:column;min-height:0;min-width:0;flex:1 1 auto;overflow:hidden}
+    .modal.slim{width:min(490px,100%)}
+    .modal-head{padding:21px 24px 16px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex:0 0 auto}
+    .modal-head h2{font-size:20px;letter-spacing:-.6px;margin:0 0 5px}
+    .modal-head p{font-size:12px;color:var(--muted);margin:0}
+    .iconbutton{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:20px;color:#697681;line-height:1}
+    .modal-body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:21px 24px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+    .field{min-width:0}.field.full{grid-column:1/-1}
+    .field label{display:block;color:#5d6873;font-size:11px;font-weight:680;margin-bottom:7px}
+    .field input,.field select,.field textarea{width:100%;border:1px solid #dfe5e9;background:#fff;border-radius:9px;padding:11px 12px;font-size:13px;color:#25323b;outline:0;min-height:41px}
+    .field textarea{min-height:76px;resize:vertical;line-height:1.5}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:#87b5a0;box-shadow:0 0 0 3px #e9f5ef}
+    .field .hint{font-size:10px;color:#8f9aa4;line-height:1.6;margin:5px 0 0}
+    .subhead{font-size:11px;letter-spacing:1px;color:#87929c;text-transform:uppercase;font-weight:750;margin:7px 0 14px;grid-column:1/-1}
+    details.advanced{margin-top:18px;background:#fbfcfd;border:1px solid #edf0f2;border-radius:10px;padding:13px}
+    details.advanced summary{color:#46565e;font-size:12px;font-weight:680;cursor:pointer}
+    details.advanced .form-grid{margin-top:18px}
+    .ocr-callout{grid-column:1/-1;background:#f3f7f4;border:1px solid #dfebe3;border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .ocr-callout strong{font-size:12px;color:#344c40}
+    .ocr-callout p{font-size:11px;color:#6d8075;line-height:1.5;margin:5px 0 0}
+    .ocr-note{grid-column:1/-1;border-left:3px solid #8ba99a;background:#f4f8f5;padding:11px 12px;border-radius:0 8px 8px 0;color:#51655b;font-size:11px;line-height:1.5}
+    .ocr-alert{grid-column:1/-1;padding:12px;border-radius:9px;background:#fff8e9;border:1px solid #f2e4c5;color:#745a27;font-size:12px;line-height:1.55}
+    .ocr-alert button{border:1px solid #d5bd87;background:white;color:#725a26;border-radius:7px;padding:8px 11px;margin-top:9px;font-weight:700}
+    .modal-foot{border-top:1px solid var(--line);padding:15px 24px;display:flex;gap:9px;justify-content:flex-end;background:#fff;flex:0 0 auto;position:relative;z-index:1;box-shadow:0 -5px 15px rgba(25,35,39,.04)}
+    .stock-current{padding:17px;border-radius:12px;background:#f4f7f5;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .stock-current small{font-size:11px;color:#718478}.stock-current strong{font-size:25px;color:#2b4d40}
+    .segmented{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:4px;border-radius:10px;background:#f0f2f4;margin-bottom:19px}
+    .segmented button{border:0;background:transparent;border-radius:7px;font-size:11px;font-weight:680;padding:10px 4px;color:#72808a}
+    .segmented button.active{background:#fff;box-shadow:0 2px 9px #172a1c14;color:#273e34}
+    .toast{position:fixed;z-index:80;bottom:23px;left:50%;transform:translateX(-50%);background:#263832;color:white;box-shadow:var(--shadow);padding:12px 16px;border-radius:11px;font-size:12px;line-height:1.5;max-width:min(90vw,540px)}
+    .toast.error{background:#7d3838}
+    .loading{padding:70px 20px;text-align:center;font-size:13px;color:var(--muted)}
+    .mobile-nav{display:none}
+    @media(max-width:1050px){.app{grid-template-columns:194px minmax(0,1fr)}.side{padding:20px 11px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.side .brand{padding:0 6px}main{padding:30px 22px 50px}}
+    @media(max-width:760px){
+      .app{display:block}.side{display:none}main{padding:22px 15px 96px}
+      .topbar{margin-bottom:22px;align-items:center}.topbar h1{font-size:29px}.eyebrow{font-size:10px}.subtitle{max-width:270px;font-size:12px}
+      .head-actions{padding:0}.head-actions .btn{height:39px;padding:0 12px}.head-actions .btn span.hide-mobile{display:none}
+      .metrics{gap:9px;margin-bottom:18px}.metric{padding:15px;min-height:99px;border-radius:13px}.metric-label{margin-bottom:13px}.metric-value{font-size:23px}
+      .section{border-radius:14px}.section-head{padding:18px 16px 13px}.toolbar{padding:0 15px 13px;gap:8px}.select{max-width:125px}.results-meta{padding:0 16px 13px}
+      .table-wrap{display:none}.mobile-products{display:block}
+      .history-row{grid-template-columns:1fr auto;gap:4px 8px;padding:13px 16px}.history-row .secondary-text{grid-column:1/2}.history-row .movement-name{grid-column:1/2;grid-row:1}.history-row .change{grid-column:2;grid-row:1/3;text-align:right}
+      .mobile-nav{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;background:rgba(255,255,255,.98);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));justify-content:space-around}
+      .mobile-nav button{background:none;border:none;color:#89949d;font-size:10px;font-weight:650;display:grid;place-items:center;gap:5px;padding:3px 7px}
+      .mobile-nav button.active{color:var(--accent)}.mobile-nav svg{width:18px;height:18px}
+      .overlay{padding:0;align-items:flex-end}
+      .modal{max-height:calc(100dvh - 8px);border-radius:16px 16px 0 0}
+      .modal.product-dialog{height:calc(100dvh - 8px);max-height:calc(100dvh - 8px)}
+      .modal-head{padding:16px 16px 13px}
+      .modal-body{padding:16px;scrollbar-width:thin}
+      .modal-foot{padding:11px 16px calc(11px + env(safe-area-inset-bottom));min-height:60px}
+      .modal-foot .btn{min-height:42px}
+      .field input,.field select,.field textarea{font-size:16px}.form-grid{gap:12px}.field.full-mobile{grid-column:1/-1}
+    }
+    @media(max-width:380px){.head-actions .btn{padding:0 9px;font-size:11px}.topbar h1{font-size:26px}.metrics{gap:7px}.metric{padding:12px}.field:not(.force-half){grid-column:1/-1}}
+  
+    /* Online enrichment: sources stay readable inside the scrollable product dialog */
+    .web-check{grid-column:1/-1;border:1px solid #dce6e0;border-radius:12px;background:#f8fbf9;padding:13px 14px}
+    .web-check-head{display:flex;gap:11px;justify-content:space-between;align-items:center}
+    .web-check-head strong{font-size:12px;color:#2d4a3c}
+    .web-check-head p{margin:5px 0 0;color:#708177;line-height:1.5;font-size:10px}
+    .online-info{font-size:11px;color:#596c60;line-height:1.5;margin-top:12px}
+    .online-source{border-top:1px solid #e3ebe5;padding:10px 0;margin-top:10px;display:grid;gap:5px}
+    .online-source a{font-size:11px;font-weight:660;color:#345f49;overflow-wrap:anywhere}
+    .online-source p{font-size:10px;color:#697e70;margin:0;line-height:1.5}
+    .online-source button{width:max-content;white-space:normal}
+    .online-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .online-actions a{font-size:11px;color:#34634b}
+    @media(max-width:480px){.web-check-head{flex-wrap:wrap}.web-check-head button{width:100%}}
 
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; overflow: hidden; }
-    body { background: #091323; color: #f8fafc; font-family: system-ui, -apple-system, Arial, sans-serif; }
-    button, select, input { font: inherit; }
-    button { border: 0; cursor: pointer; touch-action: manipulation; }
-    [hidden] { display: none !important; }
-    .app-shell {
-      width: 100%; max-width: 560px; margin: 0 auto;
-      height: 100vh; height: 100dvh;
-      padding: calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px);
-      display: flex; flex-direction: column; gap: 9px; overflow: hidden;
-    }
-    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: 0 0 auto; }
-    .brand { min-width: 0; }
-    .brand strong { display: block; font-size: 19px; line-height: 1.1; letter-spacing: -.35px; }
-    .brand span { display: block; margin-top: 3px; color: #94a3b8; font-size: 11px; letter-spacing: .3px; }
-    .top-button { border: 1px solid #334155; background: #1a2a40; color: #f1f5f9; border-radius: 10px; padding: 9px 12px; min-height: 40px; font-size: 13px; font-weight: 700; }
-    .modebar { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; flex: 0 0 auto; padding: 4px; border-radius: 11px; background: #172337; border: 1px solid #293b54; }
-    .modebar button { padding: 8px 10px; min-height: 36px; border-radius: 8px; background: transparent; color: #b9c8dd; font-size: 13px; font-weight: 650; }
-    .modebar button[aria-pressed="true"] { color: #072615; background: #86efac; }
-    #readerWrap { position: relative; flex: 1 1 auto; min-height: 145px; overflow: hidden; border-radius: 15px; background: #020617; border: 1px solid #334155; isolation: isolate; }
-    #reader { position: relative; width: 100% !important; height: 100% !important; overflow: hidden !important; background: #020617; }
-    #reader video { display: block !important; width: 100% !important; height: 100% !important; object-fit: cover !important; object-position: center !important; background: #020617; }
-    #readerWrap.show-full #reader video { object-fit: contain !important; }
-    #reader canvas { max-width: 100%; }
-    #frozenFrame { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
-    #frozenLabel { position: absolute; top: 10px; right: 10px; z-index: 21; pointer-events: none; padding: 5px 8px; border-radius: 8px; background: #052e16da; color: #bbf7d0; font-size: 11px; font-weight: 750; }
-    .preview-hint { position: absolute; z-index: 10; bottom: 9px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px); padding: 6px 10px; border-radius: 99px; background: #061425b0; color: #e2e8f0; font-size: 11px; text-align: center; pointer-events: none; }
-    .feedback { flex: 0 0 auto; min-height: 39px; display: flex; align-items: center; padding: 8px 11px; color: #c6d5e8; background: #122238; border: 1px solid #253a54; border-radius: 10px; font-size: 12px; line-height: 1.35; white-space: pre-line; overflow-wrap: anywhere; max-height: 65px; overflow: auto; }
-    .actionbar { flex: 0 0 auto; }
-    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-    .buttons button { min-height: 48px; border-radius: 11px; padding: 10px 12px; background: #dbeafe; color: #10233a; font-size: 14px; font-weight: 750; }
-    .buttons button.secondary { background: #263951; color: #e2e8f0; border: 1px solid #435770; }
-    .buttons button.primary { background: #4ade80; color: #052e16; }
-    button:disabled { opacity: .5; }
-    .result-overlay { position: absolute; z-index: 30; left: 10px; right: 10px; bottom: 10px; padding: 10px 12px; border-radius: 12px; background: #081c30eb; border: 1px solid #4ade80a6; box-shadow: 0 10px 35px #0008; }
-    .result-caption { font-size: 11px; color: #86efac; font-weight: 750; }
-    .result-line { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-    .result-code { min-width: 0; flex: 1; font: 750 17px/1.2 ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
-    .copy-small { padding: 6px 9px; color: #dbeafe; background: #284560; font-size: 12px; font-weight: 650; border-radius: 7px; }
-    .drawer-backdrop { position: fixed; z-index: 50; inset: 0; background: #000a; }
-    .drawer { position: fixed; z-index: 51; left: 50%; bottom: 0; transform: translateX(-50%); width: min(100%, 560px); max-height: min(84dvh, 680px); display: flex; flex-direction: column; border-radius: 20px 20px 0 0; border: 1px solid #39516e; background: #15243a; box-shadow: 0 -10px 50px #000a; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
-    .drawer-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid #38516b; flex: 0 0 auto; }
-    .drawer-head strong { font-size: 17px; }
-    .drawer-body { overflow-y: auto; overscroll-behavior: contain; padding: 8px 2px 2px; }
-    .drawer label { display: block; color: #cbd5e1; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
-    .drawer select, .drawer input[type="text"], .drawer input[type="file"] { width: 100%; min-height: 43px; padding: 10px; border: 1px solid #64748b; border-radius: 9px; color: #f8fafc; background: #0f172a; font-size: 15px; }
-    .drawer input[type="range"] { width: 100%; accent-color: #4ade80; }
-    .drawer .setting-button { min-height: 41px; margin-top: 9px; width: 100%; padding: 8px; background: #334b66; color: #f8fafc; border-radius: 9px; font-weight: 650; }
-    .switch { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 13px; color: #dbeafe; }
-    .switch input { width: 19px; height: 19px; accent-color: #4ade80; }
-    .drawer .switch label { margin: 0; font-weight: 400; }
-    .subtle { color: #93a9c4; font-size: 12px; line-height: 1.45; }
-    .settings-section { border-bottom: 1px solid #334a63; padding-bottom: 14px; }
-    .settings-section:last-child { border-bottom: 0; }
-    .settings-section h2 { margin: 14px 0 0; font-size: 15px; }
-    @media (max-height: 650px) {
-      .app-shell { gap: 6px; padding-top: calc(env(safe-area-inset-top) + 6px); padding-bottom: calc(env(safe-area-inset-bottom) + 6px); }
-      .brand strong { font-size: 17px; }
-      .modebar button { min-height: 32px; }
-      .buttons button { min-height: 42px; }
-      .feedback { min-height: 32px; padding: 5px 9px; }
-    }
-    @media (min-width: 700px) { .app-shell { border-left: 1px solid #24374f; border-right: 1px solid #24374f; } }
   </style>
 </head>
 <body>
-
-<main class="app-shell">
-  <header class="topbar">
-    <div class="brand">
-      <strong>Ranmac Scanner</strong>
-      <span>VERSION 2.8 · ONE-SCREEN VIEW</span>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="brand-mark">R</div><div><h2>RANMAC</h2><span>Inventory Manager</span></div></div>
+    <div>
+      <div class="navlabel">Workspace</div>
+      <nav class="nav" aria-label="Main navigation">
+        <button type="button" class="active" data-view="inventory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Inventory</button>
+        <button type="button" data-view="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 2.6-6.4M3 4v4h4M12 7v5l3 2"/></svg> Stock history</button>
+        <button type="button" data-view="pos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h2l2.5 12h10l2-8H7"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg> Point of sale <span style="font-size:9px;color:#a6b0b8;margin-left:auto">SOON</span></button>
+      </nav>
     </div>
-    <button type="button" class="top-button" id="settingsBtn" aria-haspopup="dialog" aria-controls="settingsSheet">⚙ Settings</button>
-  </header>
+    <div class="sidebar-bottom"><div class="test-tag"><span class="test-dot"></span> TEST WORKSPACE</div><p>Connected to Ranmac Inventory TEST. Checkout is not enabled.</p></div>
+  </aside>
 
-  <nav class="modebar" aria-label="Scanning mode">
-    <button type="button" id="barcodeModeBtn" aria-pressed="true">▤ Barcode</button>
-    <button type="button" id="qrModeBtn" aria-pressed="false">▦ QR code</button>
-  </nav>
-
-  <section id="readerWrap" aria-label="Live scanner preview">
-    <div id="reader"></div>
-    <canvas id="frozenFrame" aria-label="Frozen camera preview" hidden></canvas>
-    <span id="frozenLabel" hidden>Frame captured</span>
-    <span id="previewHint" class="preview-hint">Keep the full barcode within the guide</span>
-    <div id="resultPanel" class="result-overlay" hidden>
-      <div class="result-caption">✓ VERIFIED · Review before opening</div>
-      <div class="result-line">
-        <span id="scannedCode" class="result-code"></span>
-        <button type="button" id="copyBtn" class="copy-small" aria-label="Copy scanned code">Copy</button>
+  <main>
+    <div class="topbar">
+      <div><p class="eyebrow">Ranmac Cycle Parts / Test workspace</p><h1 id="pageTitle">Inventory</h1><p class="subtitle" id="pageSub">Manage products, stock levels, and product records.</p></div>
+      <div class="head-actions" id="topActions">
+        <button type="button" class="btn secondary" id="scanBtn" data-action="scanner" title="Open live scanner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg><span class="hide-mobile">Scan</span></button>
+        <button type="button" class="btn primary" data-action="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="hide-mobile">Add product</span><span class="desktop-label-mobile" style="display:none">Add</span></button>
       </div>
     </div>
-  </section>
 
-  <div id="status" class="feedback" role="status" aria-live="polite">Initializing camera…</div>
-  <div class="actionbar">
-    <div class="buttons" id="liveActions">
-      <button type="button" id="startBtn">↻ Restart camera</button>
-      <button type="button" id="quickOptionsBtn" class="secondary">☷ Camera options</button>
-    </div>
-    <div class="buttons" id="confirmActions" hidden>
-      <button type="button" id="useCodeBtn" class="primary">✓ Use this code</button>
-      <button type="button" id="againBtn" class="secondary">↻ Scan again</button>
-    </div>
-  </div>
-</main>
-
-<div id="settingsBackdrop" class="drawer-backdrop" hidden></div>
-<aside id="settingsSheet" class="drawer" role="dialog" aria-modal="true" aria-label="Scanner settings" hidden>
-  <div class="drawer-head">
-    <strong>Camera & scanner settings</strong>
-    <button type="button" class="top-button" id="closeSettingsBtn">Done ✕</button>
-  </div>
-  <div class="drawer-body">
-    <div class="settings-section">
-      <label for="cameraSelect">Camera lens</label>
-      <select id="cameraSelect"><option value="auto">Automatic rear camera</option></select>
-      <button type="button" class="setting-button" id="refreshBtn">Refresh camera list</button>
-      <div class="subtle">If your preview appears ultrawide, choose a Back, Rear, or Main camera if available.</div>
-      <label for="viewMode">Camera preview</label>
-      <select id="viewMode">
-        <option value="fill">Fill window (cropped edges)</option>
-        <option value="full">Show full camera image</option>
-      </select>
-      <label for="scanMode">Scanning mode</label>
-      <select id="scanMode">
-        <option value="barcode">Barcode — wide target</option>
-        <option value="qr">QR code — square target</option>
-      </select>
-      <div id="zoomPanel" hidden>
-        <label for="zoom">Camera zoom: <span id="zoomValue">1.0×</span></label>
-        <input id="zoom" type="range" min="1" max="2" step="0.1" value="1">
+    <div id="loading" class="section loading">Loading your inventory…</div>
+    <div id="inventoryView" class="hidden">
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Products</div><div class="metric-value" id="metricProducts">—</div><div class="metric-foot">Unique inventory records</div></div>
+        <div class="metric"><div class="metric-label">Units in stock</div><div class="metric-value" id="metricUnits">—</div><div class="metric-foot">Across all products</div></div>
+        <div class="metric"><div class="metric-label">Low / Out of stock</div><div class="metric-value" id="metricLow">—</div><div class="metric-foot">Needs attention</div></div>
+        <div class="metric"><div class="metric-label">Inventory cost value</div><div class="metric-value" id="metricValue">—</div><div class="metric-foot">Quantity × recorded cost</div></div>
       </div>
-      <div class="switch">
-        <input type="checkbox" id="autoOpen">
-        <label for="autoOpen">Automatically return to inventory after a verified scan</label>
-      </div>
+      <section class="section">
+        <div class="section-head"><div><h2 class="section-title">Product inventory</h2><p class="section-desc">Search by part number, description, brand, or compatible model.</p></div></div>
+        <div class="toolbar">
+          <div class="searchbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="searchInput" type="search" aria-label="Search inventory" placeholder="Search parts, brands, barcodes…" autocomplete="off"></div>
+          <select id="stockFilter" class="select" aria-label="Filter products"><option value="all">All products</option><option value="low">Low stock</option><option value="out">Out of stock</option></select>
+        </div>
+        <div class="results-meta" id="resultCount"></div>
+        <div class="table-wrap"><table><thead><tr><th>PRODUCT</th><th>BRAND / CATEGORY</th><th>STOCK</th><th>SELLING PRICE</th><th>LOCATION</th><th></th></tr></thead><tbody id="productRows"></tbody></table></div>
+        <div id="mobileProducts" class="mobile-products"></div>
+        <div class="empty hidden" id="emptyProducts"><strong>No matching products</strong>Try a different keyword, part number, or clear the filter.</div>
+      </section>
+      <section class="section activity-wrap"><div class="section-head"><div><h2 class="section-title">Recent stock activity</h2><p class="section-desc">A record of every inventory quantity change.</p></div><button type="button" class="btn ghost small" data-view="history">View all →</button></div><div id="recentRows"></div></section>
     </div>
-    <div class="settings-section">
-      <h2>Backup methods</h2>
-      <p class="subtle">For difficult barcodes, use a photo or manually type the code.</p>
-      <label for="photo">Read barcode from photo</label>
-      <input id="photo" type="file" accept="image/*" capture="environment">
-      <label for="manual">Enter barcode or part number</label>
-      <input id="manual" type="text" placeholder="91009-KVY-961" autocomplete="off">
-      <button type="button" class="setting-button" id="manualBtn">Review typed code</button>
-    </div>
-    <p class="subtle">Two matching readings are required. This scanner never changes stock quantities.</p>
-  </div>
-</aside>
+    <div id="historyView" class="hidden"><section class="section"><div class="section-head"><div><h2 class="section-title">Stock movements</h2><p class="section-desc">Most recent adjustments and opening balances.</p></div><button class="btn secondary small" data-action="refresh">Refresh</button></div><div id="historyRows"></div></section></div>
+    <div id="posView" class="hidden"><div class="pos-panel"><span class="muted-badge">PLANNED MODULE</span><h2>Point of Sale</h2><p>Your database now has Sales and Sale Items worksheets ready for a future POS. Checkout and automatic sales deductions are deliberately disabled until inventory operations have been tested. No live sales can be recorded from this screen.</p><button type="button" class="btn secondary" data-view="inventory">Return to inventory</button></div></div>
+  </main>
+</div>
+<nav class="mobile-nav" aria-label="Mobile navigation">
+  <button class="active" data-view="inventory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Inventory</button>
+  <button data-view="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 2.6-6.4M3 4v4h4M12 7v5l3 2"/></svg>History</button>
+  <button data-view="pos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h2l2.5 12h10l2-8H7"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>POS soon</button>
+</nav>
+<div class="overlay" id="overlay" aria-hidden="true"><div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Inventory form"></div></div>
+<div id="toast" class="toast hidden" role="status"></div>
 <script>
 'use strict';
-
-// ========================================
-// RANMAC LIVE SCANNER — VERSION 2.8
-// ========================================
-const REQUIRED_READS = 2;
-const MIN_READ_SPACING_MS = 300;
-const MAX_READ_GAP_MS = 1600;
-const $ = id => document.getElementById(id);
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-let scanner = null;
-let busy = false;
-let verified = false;
-let session = 0;
-let lastWorkingCamera = 'auto';
-let availableCameras = [];
-let candidate = '';
-let candidateReads = 0;
-let firstReadTime = 0;
-let lastReadTime = 0;
-let confirmedCode = '';
-
-// Only return to a real Google Apps Script deployment URL.
-let returnUrl = null;
-try {
-  const raw = new URLSearchParams(location.search).get('return');
-  if (raw) {
-    const parsed = new URL(raw);
-    if (parsed.protocol === 'https:' &&
-        parsed.hostname === 'script.google.com' &&
-        /^\/macros\/s\/[^/]+\/(exec|dev)$/.test(parsed.pathname)) {
-      returnUrl = parsed;
-    }
+const state = {products:[],movements:[],lists:{brands:[],categories:[],units:[],partTypes:[]},scannerUrl:'',webAppUrl:'',filter:'all',search:'',view:'inventory',busy:false,stockType:'IN'};
+const $ = (id)=>document.getElementById(id);
+let onlineSuggestions=[];
+const esc = (value)=>String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const php = (n)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP',maximumFractionDigits:2}).format(Number(n)||0);
+const nfmt = (n)=>new Intl.NumberFormat('en-PH').format(Number(n)||0);
+function rpc(name,arg){return new Promise((resolve,reject)=>{let call=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);if(arg===undefined)call[name]();else call[name](arg);});}
+function notify(msg,isError=false){const el=$('toast');el.textContent=msg;el.classList.remove('hidden');el.classList.toggle('error',isError);clearTimeout(notify.timer);notify.timer=setTimeout(()=>el.classList.add('hidden'),4500);}
+function normCode(s){return String(s||'').normalize('NFKC').toUpperCase().replace(/[‐-‒–—−]/g,'-').replace(/[^A-Z0-9]/g,'');}
+const aliases={brg:'bearing',brng:'bearing',assy:'assembly',gsk:'gasket',gkt:'gasket',oring:'oring',sprock:'sprocket',batt:'battery',spl:'spark plug',rhs:'right',lhs:'left'};
+function words(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').split(/\s+/).filter(Boolean).map(t=>aliases[t]||t);}
+function distanceAtMost2(a,b){if(Math.abs(a.length-b.length)>2)return 3;const prev=Array(b.length+1).fill(0).map((_,i)=>i);for(let i=1;i<=a.length;i++){let curr=[i];let min=curr[0];for(let j=1;j<=b.length;j++){const v=Math.min(prev[j]+1,curr[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));curr.push(v);min=Math.min(min,v);}if(min>2)return 3;for(let j=0;j<prev.length;j++)prev[j]=curr[j];}return prev[b.length];}
+function score(p,query){
+  if(!query.trim())return 1;
+  const code=normCode(query), identifiers=[p.partNumber,p.barcode,...(p.codes||[])].map(normCode).filter(Boolean);
+  if(code&&identifiers.includes(code))return 1200;
+  if(code&&identifiers.some(id=>id.includes(code)))return 800;
+  const corpus=[p.description,p.brand,p.category,p.location,p.partType,...(p.compatibilities||[])].join(' ');
+  const allWords=words(corpus), allText=' '+allWords.join(' ')+' ';
+  let weight=0;
+  for(const token of words(query)){
+    if(allWords.includes(token))weight+=90;
+    else if(allText.includes(' '+token))weight+=65;
+    else if(token.length>=4&&allWords.some(w=>w.length>=4&&distanceAtMost2(token,w)<=(token.length>=6?2:1)))weight+=30;
+    else return -1;
   }
-} catch (_) {}
-
-function message(text) { $('status').textContent = text; }
-function openSettings() {
-  $('settingsBackdrop').hidden = false;
-  $('settingsSheet').hidden = false;
-  $('closeSettingsBtn').focus();
+  return weight;
 }
-function closeSettings() {
-  $('settingsBackdrop').hidden = true;
-  $('settingsSheet').hidden = true;
-  $('settingsBtn').focus();
+function visibleProducts(){
+  const q=state.search;
+  return state.products.map(p=>({p,s:score(p,q)})).filter(x=>x.s>=0&&
+    (state.filter==='all'||(state.filter==='low'&&x.p.status==='Low stock')||(state.filter==='out'&&x.p.status==='Out of stock')))
+    .sort((a,b)=>b.s-a.s||a.p.partNumber.localeCompare(b.p.partNumber)).map(x=>x.p);
 }
-function updateModeButtons() {
-  const isBarcode = $('scanMode').value === 'barcode';
-  $('barcodeModeBtn').setAttribute('aria-pressed', String(isBarcode));
-  $('qrModeBtn').setAttribute('aria-pressed', String(!isBarcode));
-  $('previewHint').textContent = isBarcode
-    ? 'Keep the full barcode within the guide'
-    : 'Center the full QR code in the square';
+function statusChip(p){const cls=p.status==='In stock'?'good':p.status==='Low stock'?'low':'out';return `<span class="chip ${cls}">${esc(p.status)}</span>`;}
+function renderInventory(){
+  const products=state.products, totalUnits=products.reduce((s,p)=>s+p.quantity,0), alerts=products.filter(p=>p.status!=='In stock').length;
+  const cost=products.reduce((s,p)=>s+p.quantity*p.costPrice,0);
+  $('metricProducts').textContent=nfmt(products.length);$('metricUnits').textContent=nfmt(totalUnits);$('metricLow').textContent=nfmt(alerts);$('metricValue').textContent=php(cost);
+  const shown=visibleProducts();$('resultCount').textContent=`${nfmt(shown.length)} of ${nfmt(products.length)} products`;
+  $('emptyProducts').classList.toggle('hidden',shown.length!==0);
+  $('productRows').innerHTML=shown.map(p=>`<tr>
+    <td><div class="part">${esc(p.partNumber||p.barcode)}</div><div class="desc" title="${esc(p.description)}">${esc(p.description||'No description')}</div></td>
+    <td><div>${esc(p.brand||'—')}</div><div class="desc">${esc(p.category||'Uncategorized')}</div></td>
+    <td><div class="qty">${nfmt(p.quantity)} <span class="weak">${esc(p.unit)}</span></div><div style="margin-top:7px">${statusChip(p)}</div></td>
+    <td>${php(p.sellingPrice)}</td><td class="weak">${esc(p.location||'—')}</td>
+    <td><div class="row-actions"><button class="linkbtn" data-action="edit" data-id="${esc(p.productId)}">Edit</button><button class="linkbtn" data-action="stock" data-id="${esc(p.productId)}">Stock ±</button></div></td>
+  </tr>`).join('');
+  $('mobileProducts').innerHTML=shown.map(p=>`<article class="product-card">
+    <div class="product-card-head"><div><div class="part">${esc(p.partNumber||p.barcode)}</div><div class="desc">${esc(p.description||'No description')}</div></div>${statusChip(p)}</div>
+    <div class="product-meta"><span>${esc(p.brand||'—')} · ${esc(p.location||'No location')}</span><span><strong style="color:#37454a">${nfmt(p.quantity)} ${esc(p.unit)}</strong> · ${php(p.sellingPrice)}</span></div>
+    <div class="product-actions"><button class="btn secondary small" data-action="edit" data-id="${esc(p.productId)}">Edit details</button><button class="btn primary small" data-action="stock" data-id="${esc(p.productId)}">Stock ±</button></div>
+  </article>`).join('');
+  renderHistory();
 }
-function updateActionButtons(isConfirmed) {
-  $('liveActions').hidden = isConfirmed;
-  $('confirmActions').hidden = !isConfirmed;
-  $('previewHint').hidden = isConfirmed;
+function renderHistory(){
+  const movements=state.movements;
+  function one(m){return `<div class="history-row"><div class="secondary-text">${esc(m.date)}</div><div><div class="movement-name">${esc(m.partNumber||m.productId)}</div><div class="secondary-text">${esc(m.type)}${m.notes?' · '+esc(m.notes):''}</div></div><div class="secondary-text">${esc(m.reference||'—')}</div><div class="change" style="font-weight:740;color:${m.change>=0?'#377758':'#b25e51'}">${m.change>0?'+':''}${nfmt(m.change)}</div></div>`;}
+  $('recentRows').innerHTML=movements.length?movements.slice(0,5).map(one).join(''):'<div class="empty">No stock movements yet.</div>';
+  $('historyRows').innerHTML=movements.length?movements.map(one).join(''):'<div class="empty">No stock movements yet.</div>';
 }
-
-function errorMessage(error) { return (error && error.message) || String(error); }
-function setBusy(value) {
-  busy = value;
-  $('startBtn').disabled = value;
-  $('refreshBtn').disabled = value;
-  $('cameraSelect').disabled = value;
-  $('scanMode').disabled = value;
+function setView(view){
+  state.view=view;
+  for(const key of ['inventory','history','pos'])$(key+'View').classList.toggle('hidden',view!==key);
+  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  const titles={inventory:['Inventory','Manage products, stock levels, and product records.'],history:['Stock history','Every change to your on-hand inventory, recorded.'],pos:['Point of sale','Checkout will be activated in a later phase.']};
+  $('pageTitle').textContent=titles[view][0];$('pageSub').textContent=titles[view][1];
+  $('topActions').classList.toggle('hidden',view==='pos');window.scrollTo(0,0);
 }
-function resetCandidate() {
-  candidate = '';
-  candidateReads = 0;
-  firstReadTime = 0;
-  lastReadTime = 0;
-}
-function storedValue(key) {
-  try { return localStorage.getItem(key); } catch (_) { return null; }
-}
-function storeValue(key, value) {
-  try { localStorage.setItem(key, value); } catch (_) {}
-}
-
-function cameraScore(item) {
-  const s = (item.label || '').toLowerCase();
-  let score = 0;
-  if (/back|rear|environment/.test(s)) score += 30;
-  if (/main|primary|back camera 0/.test(s)) score += 20;
-  if (/ultra[ -]?wide|0[.,]5x|macro|depth|telephoto/.test(s)) score -= 45;
-  if (/front|selfie|user/.test(s)) score -= 100;
-  return score;
-}
-async function refreshCameras() {
-  if (!window.Html5Qrcode) throw new Error('Barcode scanner library did not load.');
-  availableCameras = await Html5Qrcode.getCameras();
-  const select = $('cameraSelect');
-  const previous = select.value;
-  select.replaceChildren(new Option('Automatic rear camera', 'auto'));
-  availableCameras.forEach((camera, index) => {
-    select.add(new Option(camera.label || `Camera ${index + 1}`, camera.id));
+function options(list,value){const vals=Array.from(new Set([value||'',...(list||[])]));return vals.map(v=>`<option value="${esc(v)}"></option>`).join('');}
+function field(label,name,value,attrs=''){return `<div class="field"><label for="f_${name}">${label}</label><input id="f_${name}" name="${name}" value="${esc(value)}" ${attrs}></div>`;}
+function openModal(content,slim=false){$('modal').className='modal'+(slim?' slim':'');$('modal').innerHTML=content;$('overlay').classList.add('show');$('overlay').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';}
+function closeModal(){if(state.busy)return;$('overlay').classList.remove('show');$('overlay').setAttribute('aria-hidden','true');$('modal').innerHTML='';document.body.style.overflow='';}
+function modalFrame(title,desc,body,submitLabel,formId){return `<div class="modal-head"><div><h2>${esc(title)}</h2><p>${esc(desc)}</p></div><button class="iconbutton" data-action="close" aria-label="Close">×</button></div><form id="${esc(formId)}"><div class="modal-body">${body}</div><div class="modal-foot"><button type="button" class="btn secondary" data-action="close">Cancel</button><button type="submit" class="btn primary" id="modalSubmit">${esc(submitLabel)}</button></div></form>`;}
+async function openProductForm(pid, initial={}){
+  const p=pid?state.products.find(x=>x.productId===pid):null;
+  if(pid&&!p){notify('Product not found. Refresh and try again.',true);return;}
+  let extra={codes:[],compatibility:[]};
+  if(p){try{extra=await rpc('getProductExtra',pid);}catch(e){notify('Could not load extra details: '+e.message,true);return;}}
+  const value=(k)=>p?p[k]||'':(initial && Object.prototype.hasOwnProperty.call(initial,k) ? initial[k] : '');
+  const multiCodes=(extra.codes||[]).map(x=>x.code).join('\n');
+  const fitment=(extra.compatibility||[]).map(x=>[x.brand,x.model,x.variant,x.yearFrom,x.yearTo].join(' | ').replace(/(\s*\|\s*)+$/,'')).join('\n');
+  const norm = (v)=>String(v||'').normalize('NFKC').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const match = !p && (initial.partNumber || initial.barcode) ? state.products.find(q=>
+    (initial.barcode && q.barcode && norm(initial.barcode)===norm(q.barcode)) ||
+    (initial.partNumber && q.partNumber && norm(initial.partNumber)===norm(q.partNumber) &&
+      (!initial.brand || !q.brand || norm(initial.brand)===norm(q.brand)))
+  ) : null;
+  const ocrTools = !p ? `<div class="ocr-callout"><div><strong>Register from packaging</strong><p>Take a label photo to suggest part number, brand, and description.</p></div><button type="button" class="btn secondary small" data-action="label">Read label ↗</button></div>` : '';
+  const ocrNote = !p && initial.fromOcr ? `<div class="ocr-note">OCR suggestions imported. Check each field against the packaging before saving. Missing text stays blank. This does not save automatically.</div>` : '';
+  const duplicateNote = match ? `<div class="ocr-alert"><strong>Possible duplicate found:</strong> ${esc(match.partNumber || match.barcode)} — ${esc(match.description)}<br>Don't create a second record if it's the same part.<br><button type="button" data-action="duplicate-stock" data-id="${esc(match.productId)}">Stock In for existing product</button></div>` : '';
+  const body=`<div class="form-grid">
+    ${ocrTools}${ocrNote}${duplicateNote}
+    ${!p ? `<div class="web-check field full"><div class="web-check-head"><div><strong>Check product details online</strong><p>Find sources for the printed part number. Results are suggestions, never saved automatically.</p></div><button type="button" class="btn secondary small" data-action="web-lookup">Check online ↗</button></div><div id="onlineResults" aria-live="polite"></div></div>` : ''}
+    <div class="subhead">Identification</div>
+    ${field('Part number','partNumber',value('partNumber'),'placeholder="e.g. 91009-KVY-961"')}
+    ${field('Barcode','barcode',value('barcode'),'placeholder="Actual decoded barcode"')}
+    <div class="field full"><label for="f_description">Description *</label><input id="f_description" name="description" value="${esc(value('description'))}" required maxlength="300" placeholder="Product description"></div>
+    <div class="field"><label for="f_brand">Brand *</label><input id="f_brand" name="brand" list="brandList" value="${esc(value('brand'))}" required placeholder="e.g. HONDA"><datalist id="brandList">${options(state.lists.brands,value('brand'))}</datalist></div>
+    <div class="field"><label for="f_category">Category</label><input id="f_category" name="category" list="categoryList" value="${esc(value('category'))}" placeholder="e.g. Bearing"><datalist id="categoryList">${options(state.lists.categories,value('category'))}</datalist></div>
+    <div class="subhead">Stock and pricing</div>
+    ${p?`<div class="field full"><label>Current stock</label><div class="stock-current" style="margin:0"><small>Quantity changes are tracked separately</small><strong>${nfmt(p.quantity)} ${esc(p.unit)}</strong></div></div>`:
+      field('Initial quantity','quantity','0','type="number" inputmode="numeric" min="0" step="1" required')}
+    <div class="field"><label for="f_unit">Unit</label><input id="f_unit" name="unit" list="unitList" value="${esc(value('unit')||'PCS')}" placeholder="PCS"><datalist id="unitList">${options(state.lists.units,value('unit'))}</datalist></div>
+    ${field('Storage location','location',value('location'),'placeholder="e.g. Cabinet A / Layer B"')}
+    ${field('Cost price (₱)','costPrice',p?value('costPrice'):'0','type="number" min="0" step="0.01" inputmode="decimal"')}
+    ${field('Selling price (₱)','sellingPrice',p?value('sellingPrice'):'0','type="number" min="0" step="0.01" inputmode="decimal"')}
+    ${field('Minimum stock alert','minimumStock',p?value('minimumStock'):'1','type="number" min="0" step="1" inputmode="numeric"')}
+  </div>
+  <details class="advanced"><summary>Additional details · supplier, compatibility, alternate codes</summary><div class="form-grid">
+    ${field('Supplier','supplier',value('supplier'),'placeholder="Optional"')}
+    <div class="field"><label for="f_partType">Part type</label><input id="f_partType" name="partType" list="typeList" value="${esc(value('partType'))}" placeholder="Genuine OEM"><datalist id="typeList">${options(state.lists.partTypes,value('partType'))}</datalist></div>
+    <div class="field full"><label for="f_alternateCodes">Alternate codes (one per line)</label><textarea id="f_alternateCodes" name="alternateCodes" placeholder="Alternate part numbers or barcodes">${esc(multiCodes)}</textarea><p class="hint">These codes also become searchable. Each should identify this same product.</p></div>
+    <div class="field full"><label for="f_compatibilityText">Compatible motorcycles (one per line)</label><textarea id="f_compatibilityText" name="compatibilityText" rows="3" placeholder="Honda | Wave 125 | FI | 2020 | 2024">${esc(fitment)}</textarea><p class="hint">Format: Brand | Model | Variant | Year From | Year To. Optional, verified compatibility only.</p></div>
+    <div class="field full"><label for="f_notes">Notes</label><textarea id="f_notes" name="notes" placeholder="Extra details for this part">${esc(value('notes'))}</textarea></div>
+  </div></details>
+  ${p?'<p style="font-size:11px;color:#9aa4ac;margin:15px 0 0">Editing details does not affect stock quantities. Use Stock ± for adjustments.</p>':''}`;
+  openModal(modalFrame(p?'Edit product':'Add new product',p?'Update the product catalog record.':'Create a record in the TEST inventory.',body,p?'Save changes':'Add product','productForm'));
+  $('modal').classList.add('product-dialog');
+  $('productForm').addEventListener('submit',async e=>{
+    e.preventDefault();if(state.busy)return;
+    const payload=Object.fromEntries(new FormData(e.currentTarget).entries());if(p)payload.productId=p.productId;
+    if(!payload.partNumber.trim()&&!payload.barcode.trim()){notify('Enter a part number or barcode.',true);return;}
+    state.busy=true;$('modalSubmit').disabled=true;$('modalSubmit').textContent='Saving…';
+    try{const res=await rpc('saveProduct',payload);state.busy=false;closeModal();notify('Product '+res.action+' successfully.');await reloadData();}
+    catch(err){state.busy=false;$('modalSubmit').disabled=false;$('modalSubmit').textContent='Try again';notify(err.message||String(err),true);}
   });
-  const saved = storedValue('ranmacPreferredCamera');
-  const isListed = value => availableCameras.some(camera => camera.id === value);
-  const best = availableCameras.slice().sort((a, b) => cameraScore(b) - cameraScore(a))[0];
-  select.value = isListed(previous) ? previous :
-    isListed(saved) ? saved :
-    (best && cameraScore(best) > 0 ? best.id : 'auto');
-  return select.value;
+}
+function openStockModal(pid){
+  const p=state.products.find(x=>x.productId===pid);
+  if(!p){notify('Product no longer found.',true);return;}
+  state.stockType='IN';
+  const body=`<div class="stock-current"><div><small>Current quantity</small><div style="font-size:12px;font-weight:650;margin-top:5px">${esc(p.partNumber||p.description)}</div></div><strong>${nfmt(p.quantity)} <span style="font-size:12px">${esc(p.unit)}</span></strong></div>
+  <div class="segmented"><button type="button" class="active" data-stock-type="IN">+ Stock in</button><button type="button" data-stock-type="OUT">− Stock out</button><button type="button" data-stock-type="SET">Correct</button></div>
+  <div class="form-grid">
+    <div class="field full"><label id="stockQtyLabel" for="stockQuantity">Quantity to add *</label><input id="stockQuantity" name="quantity" type="number" min="1" step="1" inputmode="numeric" value="1" required></div>
+    <div class="field full"><label for="stockReference">Reference (optional)</label><input name="reference" id="stockReference" placeholder="Delivery note / reference number"></div>
+    <div class="field full"><label for="stockNotes">Reason or notes</label><textarea id="stockNotes" name="notes" placeholder="e.g. New supplier delivery, damaged part, physical count"></textarea></div>
+  </div><p class="field-hint" style="font-size:11px;color:#8c99a3;margin-bottom:0;line-height:1.5">All changes are recorded in Stock Movements. This is not a POS checkout.</p>`;
+  openModal(modalFrame('Update stock','Record a stock movement for this product.',body,'Record movement','stockForm'),true);
+  $('stockForm').addEventListener('submit',async e=>{
+    e.preventDefault();if(state.busy)return;
+    const payload=Object.fromEntries(new FormData(e.currentTarget).entries());payload.productId=pid;payload.type=state.stockType;
+    state.busy=true;$('modalSubmit').disabled=true;$('modalSubmit').textContent='Recording…';
+    try{const res=await rpc('adjustStock',payload);state.busy=false;closeModal();notify(`Stock updated: ${res.before} → ${res.after}.`);await reloadData();}
+    catch(err){state.busy=false;$('modalSubmit').disabled=false;$('modalSubmit').textContent='Try again';notify(err.message||String(err),true);}
+  });
+}
+function setStockType(type){state.stockType=type;document.querySelectorAll('[data-stock-type]').forEach(b=>b.classList.toggle('active',b.dataset.stockType===type));const label=$('stockQtyLabel');if(!label)return;label.textContent=type==='IN'?'Quantity to add *':type==='OUT'?'Quantity to remove *':'New counted quantity *';$('stockQuantity').min=type==='SET'?'0':'1';$('stockQuantity').value=type==='SET'?'0':'1';}
+function openScanner(){
+  if(!state.scannerUrl){notify('Scanner link not configured in the Settings sheet.',true);return;}
+  if(!state.webAppUrl){notify('Deploy the Apps Script web app before opening the scanner.',true);return;}
+  try{
+    const url=new URL(state.scannerUrl);
+    if(url.protocol!=='https:')throw Error('Scanner URL must use HTTPS.');
+    url.searchParams.set('return',state.webAppUrl);
+    const tab=window.open(url.toString(),'_blank');
+    if(tab)tab.opener=null;
+    else notify('If the scanner did not open, allow pop-ups for this web app.');
+  }catch(err){notify(err.message,true);}
+}
+function openLabelReader(){
+  if(!state.scannerUrl || !state.webAppUrl){notify('Scanner and web app URLs must be configured first.',true);return;}
+  try{
+    const scanner=new URL(state.scannerUrl);
+    if(scanner.protocol!=='https:' || scanner.hostname!=='s7engali.github.io'){
+      throw new Error('The label reader must be hosted on your configured GitHub Pages site.');
+    }
+    const url=new URL('label.html',scanner);
+    url.searchParams.set('return',state.webAppUrl);
+    const tab=window.open(url.toString(),'_blank');
+    if(tab)tab.opener=null;
+    else notify('Allow pop-ups for the inventory app, then try again.',true);
+  }catch(err){notify(err.message||String(err),true);}
 }
 
-function getQrBox(width, height) {
-  const limitW = Math.max(40, width - 20);
-  const limitH = Math.max(40, height - 20);
-  if ($('scanMode').value === 'qr') {
-    const side = Math.max(40, Math.floor(Math.min(limitW, limitH) * 0.8));
-    return { width: side, height: side };
+function safeSearchUrl(partNumber,brand){
+  return 'https://www.google.com/search?q='+encodeURIComponent([brand,partNumber,'motorcycle spare part'].filter(Boolean).join(' '));
+}
+async function runWebLookup(){
+  const number=$('f_partNumber') && $('f_partNumber').value.trim();
+  const brand=$('f_brand') && $('f_brand').value.trim();
+  const box=$('onlineResults');
+  if(!box)return;
+  if(!number || number.length<5){notify('Enter or scan a part number before checking online.',true);return;}
+  const searchUrl=safeSearchUrl(number,brand);
+  box.innerHTML='<p class="online-info">Checking online sources…</p>';
+  try{
+    const res=await rpc('lookupPartOnline',{partNumber:number,brand});
+    if(!$('onlineResults'))return;
+    onlineSuggestions=Array.isArray(res.suggestions)?res.suggestions:[];
+    const searchLink=`<div class="online-actions"><a href="${esc(searchUrl)}" target="_blank" rel="noopener noreferrer">Open web search ↗</a></div>`;
+    if(!res.configured){box.innerHTML=`<p class="online-info">Automatic lookup is not configured yet. You can still verify this part number in a browser. To enable in-app results, add a Brave Search API key to Apps Script project Script Properties.</p>${searchLink}`;return;}
+    if(!onlineSuggestions.length){box.innerHTML=`<p class="online-info">No exact part-number matches found. Keep any uncertain fields blank and verify with an official parts catalog.</p>${searchLink}`;return;}
+    box.innerHTML=`<p class="online-info">${onlineSuggestions.length} possible source${onlineSuggestions.length===1?'':'s'} found for this exact part number. Check the links before using a description.</p>`+onlineSuggestions.map((x,i)=>{
+      const suggested=[x.suggestedDescription?`Description: ${esc(x.suggestedDescription)}`:'',x.suggestedBrand?`Brand: ${esc(x.suggestedBrand)}`:'',x.suggestedCategory?`Category: ${esc(x.suggestedCategory)}`:''].filter(Boolean).join(' · ');
+      const fill=suggested?`<button type="button" class="btn secondary small" data-action="web-use-fields" data-index="${i}">Fill empty fields</button>`:'';
+      return `<div class="online-source"><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a><p>${esc(x.snippet)}</p>${suggested?`<p><strong>Possible details:</strong> ${suggested}</p>`:''}${fill}</div>`;
+    }).join('')+searchLink;
+  }catch(err){box.innerHTML=`<p class="online-info">Online lookup unavailable: ${esc(err.message||err)}. You can still search manually.</p><div class="online-actions"><a href="${esc(searchUrl)}" target="_blank" rel="noopener noreferrer">Open web search ↗</a></div>`;}
+}
+function useWebFields(index){
+  const item=onlineSuggestions[Number(index)];if(!item)return;
+  const pairs=[['f_description','suggestedDescription'],['f_brand','suggestedBrand'],['f_category','suggestedCategory']];
+  let count=0;
+  for(const [fieldId,suggestion] of pairs){
+    const input=$(fieldId);
+    if(input && !input.value.trim() && item[suggestion]){input.value=item[suggestion];count++;}
   }
-  return {
-    width: Math.max(40, Math.floor(Math.min(limitW, width * 0.89))),
-    height: Math.max(40, Math.floor(Math.min(limitH, Math.max(85, height * 0.40), 125)))
+  notify(count?`${count} empty field(s) filled with web suggestions. Verify before saving.`:'Nothing filled: these fields already contain values.');
+}
+async function reloadData(){
+  try{
+    const data=await rpc('getAppData');
+    state.products=data.products||[];state.movements=data.movements||[];
+    state.lists=data.lists||state.lists;state.scannerUrl=data.scannerUrl||'';state.webAppUrl=data.webAppUrl||'';
+    $('loading').classList.add('hidden');renderInventory();setView(state.view);
+  }catch(err){$('loading').classList.remove('hidden');$('loading').innerHTML='<strong style="color:#a44a43">Unable to load inventory</strong><p style="margin-top:10px">'+esc(err.message||err)+'</p><p>Run <strong>setupRanmacInventory()</strong> from Apps Script, then deploy a new version.</p>';
+    for(const key of ['inventory','history','pos'])$(key+'View').classList.add('hidden');notify('Database connection failed.',true);}
+}
+function handleIncomingScan(){
+  const apply=params=>{
+    if(!params)return;
+    if(params.ocr==='1'){
+      // All OCR results are suggestions. Never save until the user reviews the form.
+      const read=k=>String(params[k]||'').slice(0,k==='description'?300:120);
+      const data={partNumber:read('partNumber'),barcode:read('barcode'),
+        description:read('description'),brand:read('brand'),category:read('category'),fromOcr:true,onlineLookup:params.webLookup==='1'};
+      setView('inventory');
+      openProductForm(null,data).then(()=>{if(data.onlineLookup && $('f_partNumber')?.value)runWebLookup();});
+      notify('Label details imported for review. Nothing has been saved.');
+      return;
+    }
+    const query=String(params.scan||'');
+    if(!query)return;
+    state.search=query;$('searchInput').value=query;$('stockFilter').value='all';state.filter='all';
+    renderInventory();setView('inventory');notify('Scanned code: '+query);
   };
+  if(window.google&&google.script&&google.script.url&&google.script.url.getLocation){
+    google.script.url.getLocation(info=>apply(info&&info.parameter));
+  }else{apply(Object.fromEntries(new URLSearchParams(location.search)));}
 }
-function newScanner() {
-  const F = Html5QrcodeSupportedFormats;
-  return new Html5Qrcode('reader', {
-    formatsToSupport: [
-      F.QR_CODE, F.CODE_128, F.CODE_39, F.CODE_93,
-      F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E,
-      F.ITF, F.CODABAR, F.DATA_MATRIX, F.PDF_417
-    ],
-    verbose: false
-  });
-}
-async function stopScanner() {
-  // Ignore callbacks from the previous camera session.
-  session += 1;
-  const current = scanner;
-  scanner = null;
-  $('zoomPanel').hidden = true;
-  if (!current) return;
-  try { if (current.isScanning) await current.stop(); } catch (_) {}
-  try { current.clear(); } catch (_) {}
-}
-
-// Most EAN/UPC retail barcodes contain a check digit.
-// Additional verification is optional, not a substitute for reviewing the result.
-function validRetailChecksum(code, format) {
-  const needed = { EAN_13: 13, EAN_8: 8, UPC_A: 12 }[format];
-  if (!needed) return true;
-  if (!/^\d+$/.test(code) || code.length !== needed) return false;
-  let sum = 0;
-  let weight = 3;
-  for (let i = code.length - 2; i >= 0; i--) {
-    sum += Number(code[i]) * weight;
-    weight = weight === 3 ? 1 : 3;
-  }
-  return (10 - sum % 10) % 10 === Number(code[code.length - 1]);
-}
-
-// Draw exactly what the user sees in the live preview before closing the stream.
-// This releases the camera afterward instead of leaving a paused camera active.
-function captureFrozenFrame() {
-  const video = document.querySelector('#reader video');
-  const box = $('reader');
-  const canvas = $('frozenFrame');
-  if (!video || !video.videoWidth || !video.videoHeight) return false;
-
-  const width = box.clientWidth;
-  const height = box.clientHeight;
-  if (!width || !height) return false;
-
-  try {
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(width * pixelRatio);
-    canvas.height = Math.round(height * pixelRatio);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return false;
-    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    ctx.fillStyle = '#020617';
-    ctx.fillRect(0, 0, width, height);
-
-    const sourceWidth = video.videoWidth;
-    const sourceHeight = video.videoHeight;
-    if ($('viewMode').value === 'full') {
-      // Match CSS object-fit: contain, including the empty side bands.
-      const scale = Math.min(width / sourceWidth, height / sourceHeight);
-      const w = sourceWidth * scale;
-      const h = sourceHeight * scale;
-      ctx.drawImage(video, (width - w) / 2, (height - h) / 2, w, h);
-    } else {
-      // Match CSS object-fit: cover and center-crop portrait camera video.
-      const scale = Math.max(width / sourceWidth, height / sourceHeight);
-      const croppedWidth = width / scale;
-      const croppedHeight = height / scale;
-      const sx = (sourceWidth - croppedWidth) / 2;
-      const sy = (sourceHeight - croppedHeight) / 2;
-      ctx.drawImage(video, sx, sy, croppedWidth, croppedHeight, 0, 0, width, height);
-    }
-
-    canvas.hidden = false;
-    $('frozenLabel').hidden = false;
-    return true;
-  } catch (error) {
-    // A frozen frame is optional; never block a successfully decoded barcode.
-    clearFrozenFrame();
-    return false;
-  }
-}
-
-function clearFrozenFrame() {
-  $('frozenFrame').hidden = true;
-  $('frozenLabel').hidden = true;
-}
-
-async function onDecoded(value, decodedResult, expectedSession) {
-  if (expectedSession !== session || verified || busy) return;
-  const code = String(value == null ? '' : value).trim();
-  if (!code) return;
-  const format = decodedResult?.result?.format?.formatName || '';
-  if (!validRetailChecksum(code, format)) return;
-
-  const now = performance.now();
-  if (candidate !== code || now - lastReadTime > MAX_READ_GAP_MS) {
-    candidate = code;
-    candidateReads = 1;
-    firstReadTime = now;
-    lastReadTime = now;
-    message('Barcode detected. Verifying… 1 / 2');
-    return;
-  }
-  if (now - lastReadTime < MIN_READ_SPACING_MS) return;
-
-  lastReadTime = now;
-  candidateReads += 1;
-  if (candidateReads >= REQUIRED_READS && now - firstReadTime >= MIN_READ_SPACING_MS) {
-    verified = true;
-    confirmedCode = code;
-    if (navigator.vibrate) navigator.vibrate(85);
-    const frameSaved = captureFrozenFrame(); // Must happen BEFORE stopScanner().
-    await stopScanner();
-    $('scannedCode').textContent = code;
-    $('resultPanel').hidden = false;
-    updateActionButtons(true);
-    message(frameSaved
-      ? 'Verified: two matching reads. Camera image frozen for review; camera is off.'
-      : 'Verified: two matching reads. Review the code below.');
-    if ($('autoOpen').checked) sendToInventory();
-  }
-}
-
-function enableZoom() {
-  $('zoomPanel').hidden = true;
-  if (!scanner || !scanner.isScanning) return;
-  try {
-    const caps = scanner.getRunningTrackCapabilities();
-    const range = caps.zoom;
-    if (!range || !Number.isFinite(range.min) ||
-        !Number.isFinite(range.max) || range.max <= range.min) return;
-    const settings = scanner.getRunningTrackSettings();
-    const slider = $('zoom');
-    slider.min = String(range.min);
-    slider.max = String(range.max);
-    slider.step = String(range.step || 0.1);
-    slider.value = String(settings.zoom || range.min);
-    $('zoomValue').textContent = Number(slider.value).toFixed(1) + '×';
-    $('zoomPanel').hidden = false;
-  } catch (_) {}
-}
-
-async function startCamera(requested = 'auto') {
-  if (busy) return;
-  setBusy(true);
-  verified = false;
-  confirmedCode = '';
-  resetCandidate();
-  clearFrozenFrame();
-  $('resultPanel').hidden = true;
-  updateActionButtons(false);
-  const originalCamera = lastWorkingCamera;
-  message('Starting camera…');
-  try {
-    if (!window.Html5Qrcode) throw new Error('Scanner library did not load.');
-    if (!isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-      throw new Error('Camera access requires HTTPS and a supported browser.');
-    }
-    await stopScanner();
-    await delay(250); // Allow the Android camera to release its previous stream.
-
-    const choices = requested !== 'auto' ? [requested, 'auto'] : ['auto'];
-    let started = false;
-    let lastError = null;
-    let workingChoice = 'auto';
-    for (const choice of choices) {
-      const cameraSource = choice === 'auto' ? { facingMode: 'environment' } : choice;
-      const configs = [
-        { fps: 12, qrbox: getQrBox, aspectRatio: 16 / 9, disableFlip: false },
-        { fps: 10, qrbox: getQrBox, aspectRatio: 4 / 3, disableFlip: false },
-        { fps: 10, qrbox: getQrBox, disableFlip: false }
-      ];
-      for (const config of configs) {
-        try {
-          scanner = newScanner();
-          const expectedSession = session;
-          await scanner.start(
-            cameraSource,
-            config,
-            (value, details) => onDecoded(value, details, expectedSession),
-            () => {} // Failed frames are normal; keep scanning.
-          );
-          started = true;
-          workingChoice = choice;
-          break;
-        } catch (error) {
-          lastError = error;
-          await stopScanner();
-          await delay(240);
-        }
-      }
-      if (started) break;
-    }
-    if (!started) throw lastError || new Error('Unable to open a camera.');
-
-    lastWorkingCamera = workingChoice;
-    $('cameraSelect').value = workingChoice;
-    if (workingChoice !== 'auto') storeValue('ranmacPreferredCamera', workingChoice);
-    const cameraLabel = availableCameras.find(c => c.id === workingChoice)?.label || 'Automatic rear camera';
-    enableZoom();
-    message('Camera active: ' + cameraLabel + '\nKeep the ENTIRE barcode inside the guide. Two spaced matching reads are required.');
-  } catch (error) {
-    message('Camera could not start: ' + errorMessage(error) +
-      '\nTry Chrome, allow camera permission, or select a different lens.');
-    $('cameraSelect').value = originalCamera;
-  } finally {
-    setBusy(false);
-  }
-}
-
-function sendToInventory() {
-  if (!confirmedCode) return message('Scan or enter a code first.');
-  if (!returnUrl) {
-    return message('Code ready: ' + confirmedCode +
-      '\nOpen the scanner from Ranmac Inventory to return automatically.');
-  }
-  const target = new URL(returnUrl.toString());
-  target.searchParams.set('scan', confirmedCode);
-  location.assign(target.toString());
-}
-function showManualResult(code) {
-  clearFrozenFrame();
-  confirmedCode = String(code || '').trim();
-  if (!confirmedCode) return message('Enter a code first.');
-  verified = true;
-  $('scannedCode').textContent = confirmedCode;
-  $('resultPanel').hidden = false;
-  updateActionButtons(true);
-  closeSettings();
-  message('Code ready. Review it below before using it.');
-}
-
-$('settingsBtn').addEventListener('click', openSettings);
-$('quickOptionsBtn').addEventListener('click', openSettings);
-$('closeSettingsBtn').addEventListener('click', closeSettings);
-$('settingsBackdrop').addEventListener('click', closeSettings);
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && !$('settingsSheet').hidden) closeSettings();
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('button');if(!btn)return;
+  if(btn.dataset.view){setView(btn.dataset.view);return;}
+  if(btn.dataset.stockType){setStockType(btn.dataset.stockType);return;}
+  const action=btn.dataset.action, pid=btn.dataset.id;
+  if(action==='scanner')openScanner();else if(action==='label')openLabelReader();else if(action==='duplicate-stock')openStockModal(pid);else if(action==='add')openProductForm(null);
+  else if(action==='edit')openProductForm(pid);else if(action==='stock')openStockModal(pid);
+  else if(action==='web-lookup')runWebLookup();else if(action==='web-use-fields')useWebFields(btn.dataset.index);
+  else if(action==='close')closeModal();else if(action==='refresh')reloadData();
 });
-$('barcodeModeBtn').addEventListener('click', () => {
-  if ($('scanMode').value === 'barcode') return;
-  $('scanMode').value = 'barcode';
-  $('scanMode').dispatchEvent(new Event('change'));
-});
-$('qrModeBtn').addEventListener('click', () => {
-  if ($('scanMode').value === 'qr') return;
-  $('scanMode').value = 'qr';
-  $('scanMode').dispatchEvent(new Event('change'));
-});
-$('cameraSelect').addEventListener('change', () => {
-  closeSettings();
-  startCamera($('cameraSelect').value);
-});
-$('startBtn').addEventListener('click', () => startCamera($('cameraSelect').value));
-$('refreshBtn').addEventListener('click', async () => {
-  if (busy) return;
-  setBusy(true);
-  try {
-    const selected = await refreshCameras();
-    message('Found ' + availableCameras.length + ' camera(s). Selected: ' +
-      (availableCameras.find(c => c.id === selected)?.label || 'Automatic rear camera'));
-  } catch (error) {
-    message('Cannot list cameras: ' + errorMessage(error));
-  } finally { setBusy(false); }
-});
-$('scanMode').addEventListener('change', () => {
-  updateModeButtons();
-  closeSettings();
-  startCamera($('cameraSelect').value);
-});
-$('viewMode').addEventListener('change', () => {
-  // A frozen image retains the appearance captured at the moment of scanning.
-  // Use Scan again to create a preview in the newly selected mode.
-  $('readerWrap').classList.toggle('show-full', $('viewMode').value === 'full');
-  storeValue('ranmacViewMode', $('viewMode').value);
-  message($('viewMode').value === 'fill'
-    ? 'Preview is enlarged to fill the scan window. Keep the complete barcode centered; edges are cropped.'
-    : 'Full camera image visible. Black side bars are normal for a portrait feed.');
-});
-$('zoom').addEventListener('change', async () => {
-  if (!scanner?.isScanning) return;
-  const zoom = Number($('zoom').value);
-  try {
-    await scanner.applyVideoConstraints({ advanced: [{ zoom }] });
-    $('zoomValue').textContent = zoom.toFixed(1) + '×';
-  } catch (error) {
-    message('Zoom is not available on this lens: ' + errorMessage(error));
-  }
-});
-$('autoOpen').addEventListener('change', () => storeValue('ranmacAutoOpen', $('autoOpen').checked ? '1' : '0'));
-$('useCodeBtn').addEventListener('click', sendToInventory);
-$('againBtn').addEventListener('click', () => startCamera($('cameraSelect').value));
-$('copyBtn').addEventListener('click', async () => {
-  try {
-    await navigator.clipboard.writeText(confirmedCode);
-    message('Code copied.');
-  } catch (_) {
-    message('Copy failed; select the visible number manually.');
-  }
-});
-$('manualBtn').addEventListener('click', async () => {
-  const value = $('manual').value.trim();
-  if (!value || busy) return message('Enter a code first.');
-  await stopScanner();
-  showManualResult(value);
-});
-$('manual').addEventListener('keydown', event => {
-  if (event.key === 'Enter') $('manualBtn').click();
-});
-$('photo').addEventListener('change', async event => {
-  const file = event.target.files?.[0];
-  if (!file || busy) return;
-  setBusy(true);
-  clearFrozenFrame();
-  try {
-    await stopScanner();
-    scanner = newScanner();
-    message('Reading barcode from photo…');
-    const code = await scanner.scanFile(file, true);
-    await stopScanner();
-    showManualResult(code);
-  } catch (error) {
-    await stopScanner();
-    message('Could not read a barcode in that photo. Try a sharper picture.');
-  } finally {
-    $('photo').value = '';
-    setBusy(false);
-  }
-});
-window.addEventListener('pagehide', () => { stopScanner(); });
-
-(async function initialize() {
-  if (!window.Html5Qrcode) return message('Scanner library failed to load. Check your connection.');
-  $('autoOpen').checked = storedValue('ranmacAutoOpen') === '1';
-  $('viewMode').value = storedValue('ranmacViewMode') === 'full' ? 'full' : 'fill';
-  $('readerWrap').classList.toggle('show-full', $('viewMode').value === 'full');
-  updateModeButtons();
-  updateActionButtons(false);
-  try {
-    const selected = await refreshCameras();
-    await startCamera(selected);
-  } catch (error) {
-    message('Camera setup failed: ' + errorMessage(error) + '\nTap “Use camera / Restart” to retry.');
-  }
-})();
+$('overlay').addEventListener('click',e=>{if(e.target===$('overlay'))closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('overlay').classList.contains('show'))closeModal();});
+$('searchInput').addEventListener('input',e=>{state.search=e.target.value;renderInventory();});
+$('stockFilter').addEventListener('change',e=>{state.filter=e.target.value;renderInventory();});
+(async function init(){await reloadData();if($('loading').classList.contains('hidden'))handleIncomingScan();})();
 </script>
 </body>
 </html>
