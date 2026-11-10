@@ -1,212 +1,294 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ranmac | Read Product Label</title>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7f9f7">
+<title>Ranmac · Read Label 3.2</title>
+<script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script defer src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
-:root{color-scheme:light;--ink:#24332d;--muted:#738178;--line:#e4ebe6;--bg:#f7f9f7;--green:#29493a;--pale:#edf4ef}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
-main{width:min(540px,100%);padding:26px 17px 60px;margin:auto}h1{font-size:29px;letter-spacing:-1.1px;margin:0 0 7px}.sub{color:var(--muted);line-height:1.6;font-size:13px;margin:0 0 20px}
-.headline{display:flex;justify-content:space-between;align-items:center;gap:12px}.mini{border-radius:20px;padding:6px 9px;font-size:10px;font-weight:800;letter-spacing:.4px;background:var(--pale);color:var(--green)}
-.card{border:1px solid var(--line);background:white;border-radius:16px;padding:18px;margin:13px 0;box-shadow:0 4px 22px #1e2d2310}
-.section-title{font-size:14px;font-weight:750;margin:0 0 8px}.support{color:var(--muted);line-height:1.6;font-size:12px;margin:0 0 13px}
-label{display:block;font-size:11px;font-weight:700;color:#637169;margin:11px 0 6px}
-input,textarea,button{font:inherit}input[type=text],input[type=file],textarea{width:100%;padding:11px 12px;min-height:42px;border:1px solid #dce4dd;border-radius:10px;color:var(--ink);background:#fff;font-size:15px;outline:none}
-textarea{resize:vertical;min-height:70px;line-height:1.4}input:focus,textarea:focus{border-color:#91b3a0;box-shadow:0 0 0 3px #e5f0e9}
-button{border:0;border-radius:11px;padding:13px 14px;font-size:13px;font-weight:750;cursor:pointer;min-height:45px}button:disabled{opacity:.55;cursor:not-allowed}
-.primary{background:var(--green);color:white}.secondary{background:#eaf0eb;color:var(--green)}.outline{background:#fff;border:1px solid #dce5de;color:var(--green)}.wide{width:100%}.actions{display:flex;gap:9px;flex-wrap:wrap}.actions>*{flex:1}
-#preview{width:100%;display:none;max-height:255px;object-fit:contain;background:#eef2ef;border-radius:10px;border:1px solid #e0e8e2;margin:10px 0}
-#result{display:none}#status{font-size:12px;color:#557260;line-height:1.6;background:#f0f6f1;border-radius:9px;padding:11px 13px;margin-top:12px}
-#status.warn{color:#8b542e;background:#fff5e7}.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 11px}.full{grid-column:1/-1}.hint{font-size:11px;color:#748177;line-height:1.55;margin:12px 0 0}
-hr{border:0;border-top:1px solid var(--line);margin:16px 0}.check{display:flex;gap:9px;align-items:flex-start;padding:11px;background:#f7faf8;border-radius:10px;margin:12px 0}.check input{margin-top:3px;accent-color:var(--green)}.check label{margin:0;font-size:12px;font-weight:500;line-height:1.5;color:#526459}
-summary{font-size:12px;font-weight:700;color:#66766a;cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.6;background:#f6f8f7;padding:12px;border-radius:9px;max-height:180px;overflow:auto}
-#decoder{position:absolute;left:-10000px;top:0;width:250px;height:200px;overflow:hidden}
-@media(max-width:360px){.grid{grid-template-columns:1fr}h1{font-size:25px}.card{padding:14px}}
+:root{color-scheme:light;--bg:#f7f9f7;--card:#fff;--ink:#25352c;--muted:#75847a;--line:#e1e8e2;--dark:#294638;--pale:#edf4ee;--warn:#fff3e4;--warnink:#8b6633}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit}button{border:0;border-radius:11px;padding:11px 12px;font-size:13px;font-weight:700;cursor:pointer;min-height:42px}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--dark);color:#fff}.secondary{background:#eaf0eb;color:var(--dark)}.outline{background:#fff;border:1px solid #d6e1d9;color:var(--dark)}
+a{color:#355f48;text-decoration:none;font-size:12px;font-weight:650}
+main{max-width:520px;margin:auto;padding:18px 14px max(35px,env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}.head-title{font-size:22px;letter-spacing:-.7px;font-weight:800}.subtitle{font-size:12px;color:var(--muted);line-height:1.5;margin:3px 0 0}.version{font-size:10px;color:#557461;font-weight:800;background:var(--pale);padding:6px 9px;border-radius:20px}
+.card{border:1px solid var(--line);border-radius:17px;background:var(--card);padding:15px;margin:11px 0;box-shadow:0 2px 14px rgba(20,42,29,.035)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px}.label{font-size:12px;font-weight:750}.hint{font-size:11px;color:var(--muted);line-height:1.5}.mode{display:grid;grid-template-columns:1fr 1fr;gap:5px;background:#f0f4f1;padding:4px;border-radius:12px;margin:10px 0}
+.mode button{background:transparent;min-height:36px;color:#64746a}.mode button.active{background:white;color:var(--dark);box-shadow:0 1px 6px #263f2e15}
+.viewport{position:relative;border-radius:12px;background:#0d1a15;overflow:hidden;height:clamp(198px,34dvh,270px)}
+.viewport video,.viewport img{width:100%;height:100%;display:block;object-fit:cover}
+.viewport .freeze{position:absolute;inset:0;display:none}.viewport .freeze.active{display:block}
+.guides{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.guides:before{content:"";height:58%;width:88%;border:2px solid #d0e9d5;border-radius:9px;box-shadow:0 0 0 100vmax #0003,inset 0 0 0 1px #121f162e}
+.guides:after{content:"PLACE THE LABEL INSIDE THE FRAME";position:absolute;bottom:10px;left:0;right:0;text-align:center;color:#f4fff4;font-size:9px;font-weight:750;letter-spacing:.55px;text-shadow:0 1px 3px #000}
+.status{display:flex;gap:8px;align-items:flex-start;background:#f0f6f1;color:#51705b;border-radius:10px;padding:9px 11px;margin:10px 0 0;font-size:11px;line-height:1.45;min-height:36px}
+.status.warn{background:var(--warn);color:var(--warnink)}.status-dot{border-radius:50%;height:7px;width:7px;margin-top:4px;flex:none;background:#5e9776}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.actions .wide{grid-column:1/-1}
+#candidate{font-size:11px;border:1px solid #dce7df;padding:9px 11px;border-radius:10px;background:#fbfdfa;line-height:1.55;margin-top:8px;overflow-wrap:anywhere}#candidate b{font-size:14px}
+input[type=text],input[type=file],select{width:100%;border:1px solid #dbe4dd;border-radius:10px;background:white;padding:11px;font-size:14px;color:#27372f;min-height:42px}
+input:focus,select:focus{border-color:#7cac91;outline:3px solid #deeee3;outline-offset:0}
+.field label{display:block;font-size:11px;color:#64736a;font-weight:680;margin:0 0 6px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.full{grid-column:1/-1}
+.section-title{font-size:14px;font-weight:780;margin:0 0 7px}.desc{font-size:11px;line-height:1.6;color:var(--muted);margin:0 0 12px}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:#596f60;line-height:1.5;margin:12px 0}.check input{margin-top:3px;accent-color:var(--dark)}
+.note{font-size:10px;color:#839087;line-height:1.6;margin-top:10px}
+hr{border:0;border-top:1px solid var(--line);margin:15px 0}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}summary{cursor:pointer;font-size:12px;font-weight:700;color:#5b7363}details p{font-size:11px;color:#697d6f;line-height:1.5}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;padding:12px;background:#f2f5f2;border-radius:10px;font-size:10px;line-height:1.6}
+.hidden{display:none!important}#decoder{width:200px;height:100px;position:absolute;left:-10000px;top:0}
+#cameraOptions{margin-top:8px}#zoomBox{margin-top:12px}#zoomBox input{width:100%;accent-color:#406b50}#captureBox{margin-top:10px}
+#imgPreview{width:100%;max-height:260px;object-fit:contain;border-radius:11px;background:#f0f3f0;display:none}
+@media(max-width:365px){.grid{grid-template-columns:1fr}.card{padding:12px}.head-title{font-size:19px}.viewport{height:190px}}
 </style>
 </head>
 <body>
 <main>
-  <div class="headline"><h1>Read product label</h1><span class="mini">RANMAC 3.1</span></div>
-  <p class="sub">Photograph a new motorcycle part label. The app suggests which text is the part number, brand, and description. You review everything before saving.</p>
-  <section class="card">
-    <h2 class="section-title">1 · Capture the label</h2>
-    <p class="support">Photograph the entire label in good light, with the printed part number as sharp and straight as possible.</p>
-    <label for="imageInput">Product label photo</label>
-    <input type="file" id="imageInput" accept="image/*" capture="environment">
-    <img id="preview" alt="Selected packaging label">
-    <button class="primary wide" id="readBtn" type="button" style="margin-top:12px" disabled>Read label</button>
-    <div id="status" role="status">Choose or photograph a label to begin. No data will be saved automatically.</div>
-  </section>
-  <section class="card" id="result">
-    <h2 class="section-title">2 · Review recognized details</h2>
-    <p class="support">OCR can confuse similar letters and numbers. Check against the packaging, especially the part number. Empty fields were not confidently identified.</p>
+ <header><div><div class="head-title">Read product label</div><p class="subtitle">Ranmac · New product registration</p></div><span class="version">VERSION 3.2</span></header>
+ <section class="card">
+   <div class="bar"><span class="label">Capture packaging</span><span class="hint">Recognize locally on your phone</span></div>
+   <div class="mode"><button class="active" id="liveTab" type="button">Live camera</button><button id="photoTab" type="button">Take photo</button></div>
+   <div id="livePane">
+     <div class="viewport"><video id="video" autoplay muted playsinline></video><img id="frozen" class="freeze" alt="Captured label"><div class="guides"></div></div>
+     <div id="status" role="status" class="status"><span class="status-dot"></span><span id="statusText">Ready to start camera.</span></div>
+     <div id="candidate" class="hidden" aria-live="polite"></div>
+     <div class="actions"><button class="primary" id="startCamera">Start / Restart</button><button class="secondary" id="capture">Capture &amp; read</button><button class="outline wide" id="reviewLive" disabled>Review detected details ↓</button></div>
+     <details id="cameraOptions"><summary>Camera options</summary><label class="hint" for="cameraSelect">Camera lens</label><select id="cameraSelect"><option value="">Automatic rear camera</option></select><div id="zoomBox" class="hidden"><p class="hint">Camera zoom <b id="zoomValue">1.0×</b></p><input type="range" id="zoom" min="1" max="4" step="0.1" value="1"></div><label class="check"><input type="checkbox" id="autoRead" checked><span>Read automatically while hovering (about one read every 3 seconds). May use more battery.</span></label></details>
+   </div>
+   <div id="photoPane" class="hidden"><p class="desc">For glossy labels, a sharp still photo often reads more accurately than live camera.</p><input type="file" id="photo" accept="image/*" capture="environment"><img id="imgPreview" alt="Selected label photo"><button class="primary" id="readPhoto" type="button" style="width:100%;margin-top:10px" disabled>Read photo</button><div id="photoStatus" class="status"><span class="status-dot"></span><span id="photoStatusText">Choose a label photo.</span></div></div>
+ </section>
+ <section class="card hidden" id="result">
+    <div class="bar"><h2 class="section-title">Review recognized details</h2><span class="hint" id="confidence">OCR suggestion</span></div>
+    <p class="desc">Check each value against the packaging. Nothing is saved yet, and the barcode value is not assumed to equal the part number.</p>
     <div class="grid">
-      <div class="full"><label for="partNumber">Part number</label><input id="partNumber" type="text" maxlength="80" placeholder="e.g. 91009-KVY-961" autocomplete="off"></div>
-      <div class="full"><label for="description">Description</label><input id="description" type="text" maxlength="300" placeholder="Enter if not shown on label"></div>
-      <div><label for="brand">Brand</label><input id="brand" type="text" maxlength="80" placeholder="e.g. HONDA"></div>
-      <div><label for="category">Category</label><input id="category" type="text" maxlength="80" placeholder="e.g. Bearing"></div>
-      <div class="full"><label for="barcode">Decoded barcode value</label><input id="barcode" type="text" maxlength="90" placeholder="Not yet decoded — can differ from part number"></div>
+      <div class="field full"><label for="partNumber">Part number</label><input type="text" id="partNumber" maxlength="80" placeholder="e.g. 91009-KVY-961" autocapitalize="characters" autocomplete="off"></div>
+      <div class="field full"><label for="description">Description</label><input type="text" id="description" maxlength="300" placeholder="e.g. GASKET, WATER PUMP COVER"></div>
+      <div class="field"><label for="brand">Brand</label><input type="text" id="brand" maxlength="80" placeholder="e.g. HONDA"></div>
+      <div class="field"><label for="category">Category</label><input type="text" id="category" maxlength="80" placeholder="e.g. Gasket"></div>
+      <div class="field full"><label for="barcode">Barcode value (only if decoded)</label><input type="text" id="barcode" maxlength="90" placeholder="Optional; can differ from printed part number"></div>
     </div>
     <hr>
-    <h2 class="section-title">Optional · Decode barcode from photo</h2>
-    <p class="support">We won't assume the barcode encodes the printed part number. You can use the same photo or take a closer barcode photo.</p>
-    <div class="actions">
-      <button class="secondary" id="decodeSame" type="button">Try label photo</button>
-      <button class="outline" id="chooseBarcode" type="button">Take barcode photo</button>
-    </div>
-    <input id="barcodeFile" type="file" accept="image/*" capture="environment" style="display:none">
-    <details style="margin-top:17px"><summary>Show raw text recognized from photo</summary><pre id="rawText"></pre></details>
-    <label class="check"><input type="checkbox" id="verified"><span>I reviewed the recognized information against the actual product label.</span></label>
-    <button class="primary wide" type="button" id="continueBtn">Continue to Add Product →</button>
-    <p class="hint">This returns to the Ranmac Inventory TEST form. It does not create a product or adjust stock. The product is saved only after you submit that form.</p>
-  </section>
-  <div id="decoder" aria-hidden="true"></div>
+    <div class="section-title">Decode barcode (optional)</div>
+    <p class="desc">If the barcode is printed on the same packaging, try decoding it from a captured photo.</p>
+    <div class="actions"><button id="decodeLabel" class="secondary" type="button">Try selected photo</button><button id="newBarcode" class="outline" type="button">Take barcode photo</button></div>
+    <input id="barcodePhoto" type="file" accept="image/*" capture="environment" class="hidden">
+    <hr>
+    <div class="section-title">Internet cross-check (optional)</div>
+    <p class="desc">Look up the exact part number to help find a missing description. Web information is unverified until you compare sources and packaging.</p>
+    <div class="actions"><button type="button" id="webSearch" class="outline">Search web ↗</button><button type="button" id="webAfter" class="secondary">Check in inventory ↗</button></div>
+    <p class="note">The in-app source lookup requires a search API key configured privately in Apps Script. It doesn't send your photo to the search provider—only the part number and brand.</p>
+    <details><summary>View raw text recognized by OCR</summary><pre id="rawText">No text read yet.</pre></details>
+    <label class="check"><input type="checkbox" id="verified"><span>I've checked these suggestions against the actual product label.</span></label>
+    <button class="primary" type="button" id="continue" style="width:100%">Continue to Add Product →</button>
+    <p class="note">The final Add Product form checks for duplicates. No record is created until you press Add Product there.</p>
+ </section>
+ <div id="decoder" aria-hidden="true"></div>
 </main>
 <script>
 'use strict';
-const $ = id => document.getElementById(id);
-const rawReturn = new URLSearchParams(location.search).get('return');
-let returnUrl = null;
-try {
-  const candidate = new URL(rawReturn);
-  if(candidate.protocol==='https:' && candidate.hostname==='script.google.com' &&
-    /^\/macros\/s\/[^/]+\/(exec|dev)$/.test(candidate.pathname)) returnUrl=candidate;
-} catch(e){}
-let photoFile=null, worker=null, reading=false;
-let objectUrl=null;
-function setStatus(text, warn=false){$('status').textContent=text;$('status').classList.toggle('warn',warn);}
-function setField(id,v){$(id).value=String(v||'');}
-function cleanText(s){return String(s||'').normalize('NFKC').replace(/[‐‑‒–—−]/g,'-').replace(/\u00a0/g,' ');}
+const $=id=>document.getElementById(id);
+const q=new URLSearchParams(location.search);
+let returnUrl=null;
+try{const u=new URL(q.get('return'));if(u.protocol==='https:'&&u.hostname==='script.google.com'&&/^\/macros\/s\/[^/]+\/(exec|dev)$/.test(u.pathname))returnUrl=u;}catch(e){}
+const status=(text,warn=false,area='live')=>{const root=area==='live'?'status':'photoStatus';$(root).classList.toggle('warn',warn);$(area==='live'?'statusText':'photoStatusText').textContent=text;};
+let stream=null,readerWorker=null,ocrBusy=false,ocrPromise=null,loopTimer=null,liveMode=true,photoFile=null,previewBlob=null;
+let lastPart='',sameCount=0,running=false,latestRaw='',bestScore=-1;
+const clean=s=>String(s||'').normalize('NFKC').replace(/[‐‑‒–—−]/g,'-').replace(/\u00a0/g,' ');
 function recognizeFields(text){
-  const raw=cleanText(text), upper=raw.toUpperCase();
-  const lines=upper.split(/\r?\n/).map(x=>x.trim().replace(/\s+/g,' ')).filter(Boolean);
-  let brand='';
-  for(const name of ['HONDA','YAMAHA','SUZUKI','KAWASAKI','RUSI','KYMCO','SYM','TVS','BAJAJ']){
-    if(new RegExp('\\b'+name+'\\b').test(upper)){brand=name;break;}
-  }
-  let partNumber='';
-  // Prefer a three-section OEM part number such as 91009-KVY-961.
-  const forms=[
-    /\b([0-9OIL]{5})\s*[- ]\s*([A-Z0-9]{3,5})\s*[- ]\s*([A-Z0-9]{2,5})\b/g,
-    /\b([A-Z0-9]{3,6})-([A-Z0-9]{2,5})-([A-Z0-9]{2,5})\b/g
-  ];
-  for(const re of forms){
-    const matches=[...upper.matchAll(re)];
-    if(matches.length){
-      const m=matches[0];
-      // Correct common OCR confusion ONLY in the numeric first segment.
-      const first=/^[0-9OIL]{5}$/.test(m[1])
-        ? m[1].replace(/O/g,'0').replace(/[IL]/g,'1') : m[1];
-      partNumber=first+'-'+m[2]+'-'+m[3];
-      break;
-    }
-  }
-  const patterns=[
-    [/\b(BRG\.?|BEARING|BALL RADIAL)\b/,'Bearing'],
-    [/\bGASKET\b/,'Gasket'],[/\bO[- ]?RING\b/,'O-Ring'],
-    [/\bOIL SEAL\b|\bSEAL\b/,'Oil Seal'],[/\bSPROCKET\b/,'Sprocket'],
-    [/\bBRAKE\b/,'Brake'],[/\bCHAIN\b/,'Chain'],
-    [/\bFILTER\b/,'Filter'],[/\bSPARK PLUG\b/,'Spark Plug'],
-    [/\bCABLE\b/,'Cable'],[/\bVALVE\b/,'Valve'],
-    [/\bBOLT\b|\bNUT\b|\bSCREW\b/,'Fastener'],
-    [/\bRUBBER\b/,'Rubber']
-  ];
-  let description='',category='';
-  for(const line of lines){
-    if(line.length>100)continue;
-    const matched=patterns.find(([re])=>re.test(line));
-    if(matched){
-      category=matched[1];
-      // Strip obvious non-description prefixes, keep exact text otherwise.
-      description=line.replace(/^(?:DESCRIPTION|PART NAME|PART DESCRIPTION)\s*[:\-]?\s*/,'').slice(0,120);
-      break;
-    }
-  }
-  // No invented description: if it is not printed clearly, leave blank.
-  return {partNumber,description,brand,category};
+ const raw=clean(text),lines=raw.toUpperCase().split(/\r?\n/).map(s=>s.trim().replace(/\s+/g,' ')).filter(Boolean);
+ const full=lines.join('\n');
+ const knownBrands=['HONDA','YAMAHA','SUZUKI','KAWASAKI','KYMCO','RUSI','SYM','TVS','BAJAJ'];
+ let brand=knownBrands.find(x=>new RegExp('\\b'+x+'\\b').test(full))||'';
+ let number='',numberScore=-1;
+ // Prioritize consistent 5-3-3 OEM numbers, even when OCR inserts spaces near hyphens.
+ const re=/\b([0-9OILSB]{5})\s*[- ]\s*([A-Z0-9]{3,5})\s*[- ]\s*([A-Z0-9]{3,5})\b/g;
+ for(const m of full.matchAll(re)){
+   const prefix=m[1].replace(/O/g,'0').replace(/[IL]/g,'1').replace(/S/g,'5').replace(/B/g,'8');
+   const candidate=prefix+'-'+m[2]+'-'+m[3];
+   const confidence=(m[1]===prefix?10:7)+(m[2].length===3?2:0)+(m[3].length===3?2:0);
+   if(confidence>numberScore){numberScore=confidence;number=candidate;}
+ }
+ if(!number){const relaxed=full.match(/\b([A-Z0-9]{4,7})-([A-Z0-9]{3,6})-([A-Z0-9]{2,6})\b/);if(relaxed)number=relaxed[0];}
+ const categories=[[/\b(BRG|BEARING|BALL RADIAL)\b/,'Bearing'],[/\bGASKET\b/,'Gasket'],[/\bO[- ]?RING\b/,'O-Ring'],[/\b(SEAL|OIL SEAL)\b/,'Oil Seal'],[/\bFILTER\b/,'Filter'],[/\bSPROCKET\b/,'Sprocket'],[/\bCHAIN\b/,'Chain'],[/\bCABLE\b/,'Cable'],[/\bVALVE\b/,'Valve'],[/\bPUMP\b/,'Pump'],[/\bBRAKE\b/,'Brake'],[/\bBOLT\b|\bNUT\b/,'Fastener'],[/\bRUBBER\b/,'Rubber']];
+ let description='',category='',descScore=-1;
+ for(const line of lines){
+   if(line.length<4||line.length>120)continue;
+   if(/\b(GENUINE|MADE IN|MOTOR|PART NO|PART NUMBER|HONDA|YAMAHA|SUZUKI)\b/.test(line)&&!/(GASKET|BEARING|SEAL|PUMP|VALVE)/.test(line))continue;
+   const found=categories.find(([pattern])=>pattern.test(line));if(!found)continue;
+   const stripped=line.replace(/^(DESCRIPTION|PART NAME|PART DESCRIPTION)\s*[:\-]?\s*/,'');
+   const score=10+Math.min(stripped.length,60)/10 - (number&&stripped.includes(number)?7:0);
+   if(score>descScore){description=stripped;category=found[1];descScore=score;}
+ }
+ return {partNumber:number,description,brand,category,score:Math.max(0,numberScore)+Math.max(0,descScore)};
 }
-function formatFilePreview(file){
-  if(objectUrl)URL.revokeObjectURL(objectUrl);
-  objectUrl=URL.createObjectURL(file);
-  $('preview').src=objectUrl;$('preview').style.display='block';
+function updateDraft(text,fromLive){
+ const raw=clean(text),f=recognizeFields(raw);
+ const existing=$('partNumber').value.trim();
+ if(f.partNumber){
+   if(fromLive){if(lastPart===f.partNumber){sameCount++;}else{lastPart=f.partNumber;sameCount=1;}}
+   else{lastPart=f.partNumber;sameCount=2;}
+ }
+ // Only improve/replace an OCR suggestion if the new recognition appears clearer.
+ if(f.score>=bestScore){
+   bestScore=f.score;
+   for(const key of ['partNumber','description','brand','category']){
+     const el=$(key);
+     if(f[key] && (!el.dataset.userEdited || !el.value.trim()))el.value=f[key];
+   }
+   latestRaw=raw;
+   $('rawText').textContent=raw||'(No recognized text)';
+ }
+ if(f.partNumber||f.description||f.brand){
+   $('result').classList.remove('hidden');$('reviewLive').disabled=false;
+ }
+ if(fromLive){
+   $('candidate').classList.remove('hidden');
+   $('candidate').innerHTML=f.partNumber?`<span class="hint">Detected part number · ${sameCount>=2?'Repeated read':'First reading'}</span><div><b>${escapeHtml(f.partNumber)}</b></div>${f.description?escapeHtml(f.description):'<span class="hint">Move closer to recognize description</span>'}`:
+     '<span class="hint">Camera is reading. Center the text and hold steady.</span>';
+   status(f.partNumber?'Text recognized. Review details below or keep hovering to improve the reading.':'Reading camera frames. Keep the label sharp.');
+ }else{status(f.partNumber?'Photo read. Verify the part number below.':'Part number unclear. Try a closer or straighter image.',!f.partNumber,'photo');}
 }
-$('imageInput').addEventListener('change',e=>{
-  const file=e.target.files[0];if(!file)return;
-  if(!file.type.startsWith('image/')){setStatus('Select an image file.',true);return;}
-  if(file.size>25*1024*1024){setStatus('Image is too large (max 25 MB).',true);return;}
-  photoFile=file;formatFilePreview(file);$('readBtn').disabled=false;
-  $('result').style.display='none';$('verified').checked=false;
-  setStatus('Photo selected. Tap Read label to recognize printed information.');
-});
-async function prepareImage(file){
-  // Resize oversized photos locally to reduce OCR work and phone memory use.
-  const img=await createImageBitmap(file);
-  try{
-    const size=Math.max(img.width,img.height), scale=Math.min(1,2000/size);
-    const canvas=document.createElement('canvas');
-    canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
-    const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    return await new Promise((resolve,reject)=>canvas.toBlob(x=>x?resolve(x):reject(new Error('Image conversion failed.')),'image/jpeg',.92));
-  }finally{img.close();}
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+async function getWorker(){
+ if(readerWorker)return readerWorker;
+ if(!window.Tesseract)throw Error('Text-recognition library did not load. Check internet access.');
+ readerWorker=await Tesseract.createWorker('eng',1,{logger:()=>{}});
+ try{await readerWorker.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});}catch(e){}
+ return readerWorker;
 }
-$('readBtn').addEventListener('click',async()=>{
-  if(!photoFile||reading)return;
-  reading=true;$('readBtn').disabled=true;
-  setStatus('Reading the label on your phone. First use may download language data.');
-  try{
-    if(!window.Tesseract)throw new Error('Text recognition library did not load. Check internet access.');
-    const input=await prepareImage(photoFile);
-    if(!worker)worker=await Tesseract.createWorker('eng',1,{logger:m=>{
-      if(m.status==='recognizing text')setStatus('Reading label: '+Math.round((m.progress||0)*100)+'%');
-    }});
-    const result=await worker.recognize(input);
-    const raw=cleanText(result.data.text||'');
-    const fields=recognizeFields(raw);
-    for(const k of ['partNumber','description','brand','category'])setField(k,fields[k]);
-    setField('barcode','');$('rawText').textContent=raw||'(No text recognized)';
-    $('result').style.display='block';$('verified').checked=false;
-    setStatus(fields.partNumber ? 'Part number candidate identified. Review all fields before continuing.' :
-      'No clear part number found. You can type it manually from the label.',!fields.partNumber);
-    $('result').scrollIntoView({behavior:'smooth',block:'start'});
-  }catch(e){setStatus('Could not read photo: '+(e.message||String(e))+'. Try a clearer image or another browser.',true);}
-  finally{reading=false;$('readBtn').disabled=false;}
-});
+async function runOcr(canvas,fromLive){
+ // A manual capture takes priority after any in-flight live recognition.
+ if(ocrPromise)await ocrPromise;
+ ocrBusy=true;
+ const job=(async()=>{
+   try{
+     const worker=await getWorker();
+     const result=await worker.recognize(canvas);
+     updateDraft(result.data.text||'',fromLive);
+   }catch(err){status('Could not read text: '+(err.message||String(err)),true,fromLive?'live':'photo');}
+ })();
+ ocrPromise=job;
+ try{await job;}finally{ocrBusy=false;if(ocrPromise===job)ocrPromise=null;}
+}
+function videoCoverCanvas(){
+ const video=$('video');if(!video.videoWidth||!video.videoHeight)throw Error('Camera not ready.');
+ const stage=document.querySelector('.viewport'),r=stage.getBoundingClientRect();
+ const viewAspect=r.width/r.height,sourceAspect=video.videoWidth/video.videoHeight;
+ let sx=0,sy=0,sw=video.videoWidth,sh=video.videoHeight;
+ if(sourceAspect>viewAspect){sw=video.videoHeight*viewAspect;sx=(video.videoWidth-sw)/2;}
+ else{sh=video.videoWidth/viewAspect;sy=(video.videoHeight-sh)/2;}
+ const max=1600,scale=Math.min(1,max/Math.max(sw,sh));
+ const c=document.createElement('canvas');c.width=Math.max(1,Math.round(sw*scale));c.height=Math.max(1,Math.round(sh*scale));
+ c.getContext('2d',{willReadFrequently:true}).drawImage(video,sx,sy,sw,sh,0,0,c.width,c.height);
+ return c;
+}
+function nextLive(delay=2000){clearTimeout(loopTimer);if(!running||!$('autoRead').checked)return;loopTimer=setTimeout(liveTick,delay);}
+async function liveTick(){
+ if(!running||!$('autoRead').checked)return;
+ if(ocrBusy){nextLive(700);return;}
+ try{const c=videoCoverCanvas();await runOcr(c,true);}catch(err){status(err.message||String(err),true);}
+ nextLive(2600);
+}
+async function enumerateCameras(){
+ try{
+   const devices=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==='videoinput');
+   const sel=$('cameraSelect'),old=sel.value;
+   sel.innerHTML='<option value="">Automatic rear camera</option>';
+   for(const d of devices){const option=document.createElement('option');option.value=d.deviceId;option.textContent=d.label||'Camera '+(sel.options.length);sel.appendChild(option);}
+   if([...sel.options].some(x=>x.value===old))sel.value=old;
+ }catch(e){}
+}
+async function stopCamera(){
+ running=false;clearTimeout(loopTimer);loopTimer=null;
+ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+ $('video').srcObject=null;
+}
+async function startCamera(){
+ await stopCamera();$('frozen').classList.remove('active');
+ if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){status('Live camera requires HTTPS and a supported browser.',true);return;}
+ const device=$('cameraSelect').value;
+ status('Starting camera…');
+ try{
+   const video=device?{deviceId:{exact:device},width:{ideal:1920},height:{ideal:1080}}:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}};
+   stream=await navigator.mediaDevices.getUserMedia({audio:false,video});
+   $('video').srcObject=stream;await $('video').play();running=true;
+   await enumerateCameras();await configureZoom();
+   status('Camera active. Hold the full label steady inside the frame; recognition runs automatically.');
+   nextLive(1000);
+ }catch(err){status('Camera unavailable: '+(err.message||String(err))+'. Try another lens or Android Chrome.',true);await stopCamera();}
+}
+async function configureZoom(){
+ $('zoomBox').classList.add('hidden');
+ const track=stream?.getVideoTracks()[0];
+ if(!track||!track.getCapabilities)return;
+ try{
+   const c=track.getCapabilities(),settings=track.getSettings();
+   if(c.zoom&&Number.isFinite(c.zoom.min)&&c.zoom.max>c.zoom.min){
+     $('zoom').min=c.zoom.min;$('zoom').max=c.zoom.max;$('zoom').step=c.zoom.step||.1;$('zoom').value=settings.zoom||c.zoom.min;
+     $('zoomValue').textContent=Number($('zoom').value).toFixed(1)+'×';$('zoomBox').classList.remove('hidden');
+   }
+ }catch(e){}
+}
+$('zoom').addEventListener('change',async()=>{const track=stream?.getVideoTracks()[0];if(!track)return;try{await track.applyConstraints({advanced:[{zoom:Number($('zoom').value)}]});$('zoomValue').textContent=Number($('zoom').value).toFixed(1)+'×';}catch(e){status('Zoom is not supported by this camera.',true);}});
+$('cameraSelect').addEventListener('change',()=>{if(liveMode)startCamera();});
+$('startCamera').addEventListener('click',startCamera);
+$('autoRead').addEventListener('change',()=>{if($('autoRead').checked&&running)nextLive(350);else clearTimeout(loopTimer);});
+async function captureFrame(){
+ if(!running){status('Start the camera first.',true);return;}
+ const c=videoCoverCanvas();
+ $('frozen').src=c.toDataURL('image/jpeg',.95);$('frozen').classList.add('active');
+ previewBlob=await new Promise(resolve=>c.toBlob(x=>resolve(x?new File([x],'ranmac-label.jpg',{type:'image/jpeg'}):null),'image/jpeg',.94));
+ await stopCamera();
+ $('candidate').classList.add('hidden');
+ status('Captured. Reading still image…');
+ await runOcr(c,false);$('reviewLive').disabled=false;
+ if(!$('result').classList.contains('hidden'))$('result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('capture').addEventListener('click',captureFrame);
+$('reviewLive').addEventListener('click',async()=>{await stopCamera();$('result').scrollIntoView({behavior:'smooth',block:'start'});});
+function switchMode(live){liveMode=live;$('liveTab').classList.toggle('active',live);$('photoTab').classList.toggle('active',!live);$('livePane').classList.toggle('hidden',!live);$('photoPane').classList.toggle('hidden',live);if(!live)stopCamera();else if(!running)startCamera();}
+$('liveTab').addEventListener('click',()=>switchMode(true));$('photoTab').addEventListener('click',()=>switchMode(false));
+function photoPreview(file){
+ const img=$('imgPreview');if(img.dataset.url)URL.revokeObjectURL(img.dataset.url);
+ const src=URL.createObjectURL(file);img.dataset.url=src;img.src=src;img.style.display='block';
+}
+$('photo').addEventListener('change',e=>{photoFile=e.target.files[0]||null;if(photoFile){if(photoFile.size>25*1024*1024){status('Choose an image smaller than 25 MB.',true,'photo');return;}photoPreview(photoFile);$('readPhoto').disabled=false;status('Photo selected. Tap Read photo.','', 'photo');}});
+async function fileCanvas(file){
+ const bitmap=await createImageBitmap(file);
+ try{const scale=Math.min(1,2000/Math.max(bitmap.width,bitmap.height));
+ const c=document.createElement('canvas');c.width=Math.max(1,Math.round(bitmap.width*scale));c.height=Math.max(1,Math.round(bitmap.height*scale));
+ c.getContext('2d',{willReadFrequently:true}).drawImage(bitmap,0,0,c.width,c.height);return c;
+ }finally{bitmap.close();}
+}
+$('readPhoto').addEventListener('click',async()=>{if(!photoFile||ocrBusy)return;status('Reading your photo…',false,'photo');const c=await fileCanvas(photoFile);previewBlob=photoFile;await runOcr(c,false);$('result').classList.remove('hidden');$('result').scrollIntoView({behavior:'smooth',block:'start'});});
+$('decodeLabel').addEventListener('click',async()=>{const file=previewBlob||photoFile;if(!file){status('Take a still photo or use Take barcode photo.',true);return;}await decodeBarcode(file);});
+$('newBarcode').addEventListener('click',()=>$('barcodePhoto').click());
+$('barcodePhoto').addEventListener('change',async e=>{const f=e.target.files[0];if(f)await decodeBarcode(f);e.target.value='';});
 async function decodeBarcode(file){
-  if(!file)return;
-  setStatus('Decoding barcode photo…');
-  try{
-    if(!window.Html5Qrcode)throw new Error('Barcode library unavailable.');
-    const scanner=new Html5Qrcode('decoder',false);
-    let code;
-    try{code=await scanner.scanFile(file,true);}finally{try{scanner.clear();}catch(e){}}
-    setField('barcode',code);
-    setStatus('Barcode decoded. Compare it with the printed number—it may be different.');
-  }catch(e){setStatus('Barcode was not decoded. You can still register using the part number; try a sharper close-up later.',true);}
+ if(!window.Html5Qrcode){status('Barcode decoder unavailable. Check connection.',true);return;}
+ status('Decoding barcode from photo…');let decoder;
+ try{decoder=new Html5Qrcode('decoder',false);const value=await decoder.scanFile(file,true);$('barcode').value=value;status('Barcode decoded. Compare it with any printed number on the packaging.');}
+ catch(err){status('Barcode not detected. A sharp close-up may work better.',true);}
+ finally{try{decoder?.clear();}catch(e){}}
 }
-$('decodeSame').addEventListener('click',()=>decodeBarcode(photoFile));
-$('chooseBarcode').addEventListener('click',()=>$('barcodeFile').click());
-$('barcodeFile').addEventListener('change',e=>{
-  const f=e.target.files[0];if(f)decodeBarcode(f);e.target.value='';
-});
-$('continueBtn').addEventListener('click',()=>{
-  if(!$('verified').checked){setStatus('Please verify the suggested details against the physical label first.',true);return;}
-  const partNumber=$('partNumber').value.trim(),barcode=$('barcode').value.trim();
-  if(!partNumber&&!barcode){setStatus('Enter a part number or a decoded barcode before continuing.',true);return;}
-  if(!returnUrl){setStatus('Open Read label from the Add Product form in Ranmac Inventory so it knows where to return.',true);return;}
-  const out=new URL(returnUrl.toString());
-  out.searchParams.set('ocr','1');
-  for(const k of ['partNumber','barcode','description','brand','category']){
-    const v=$(k).value.trim();if(v)out.searchParams.set(k,v.slice(0,300));
-  }
-  location.assign(out.toString());
-});
-window.addEventListener('pagehide',()=>{
-  if(worker){try{worker.terminate();}catch(e){}}
-  if(objectUrl)URL.revokeObjectURL(objectUrl);
-});
+['partNumber','description','brand','category','barcode'].forEach(id=>$(id).addEventListener('input',()=>{$(id).dataset.userEdited='1';}));
+function webUrl(){const part=$('partNumber').value.trim(),brand=$('brand').value.trim();return 'https://www.google.com/search?q='+encodeURIComponent([brand,part,'motorcycle spare part'].filter(Boolean).join(' '));}
+$('webSearch').addEventListener('click',()=>{if(!$('partNumber').value.trim()){status('Enter a part number to search.',true);return;}window.open(webUrl(),'_blank','noopener,noreferrer');});
+let autoLookup=false;
+$('webAfter').addEventListener('click',()=>{autoLookup=true;continueToInventory();});
+$('continue').addEventListener('click',()=>{autoLookup=false;continueToInventory();});
+function continueToInventory(){
+ if(!$('verified').checked){status('Verify the suggested details against the actual label first.',true);$('verified').focus();return;}
+ if(!$('partNumber').value.trim()&&!$('barcode').value.trim()){status('Enter a part number or decoded barcode first.',true);return;}
+ if(!returnUrl){status('Open this reader from the Add Product form in Ranmac Inventory.',true);return;}
+ stopCamera();
+ const out=new URL(returnUrl);
+ out.searchParams.set('ocr','1');if(autoLookup)out.searchParams.set('webLookup','1');
+ for(const k of ['partNumber','barcode','description','brand','category']){const value=$(k).value.trim();if(value)out.searchParams.set(k,value.slice(0,k==='description'?300:120));}
+ location.assign(out.toString());
+}
+window.addEventListener('pagehide',()=>{stopCamera();if(readerWorker){try{readerWorker.terminate();}catch(e){}}const u=$('imgPreview').dataset.url;if(u)URL.revokeObjectURL(u);});
+window.addEventListener('load',()=>{startCamera();});
 </script>
 </body>
 </html>
